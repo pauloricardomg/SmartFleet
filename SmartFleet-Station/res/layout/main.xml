@@ -1,12 +1,78 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
-    android:layout_width="fill_parent"
-    android:layout_height="fill_parent"
-    >
-<TextView  
-    android:layout_width="fill_parent" 
-    android:layout_height="wrap_content" 
-    android:text="@string/hello"
-    />
+<RelativeLayout
+android:id="@+id/widget29"
+android:layout_width="fill_parent"
+android:layout_height="fill_parent"
+xmlns:android="http://schemas.android.com/apk/res/android"
+>
+<Button
+android:id="@+id/done"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:text="Done"
+android:layout_alignBottom="@+id/widget51"
+android:layout_centerHorizontal="true"
+>
+</Button>
+<LinearLayout
+android:id="@+id/widget51"
+android:layout_width="320px"
+android:layout_height="206px"
+android:orientation="vertical"
+android:layout_alignParentTop="true"
+android:layout_alignParentLeft="true"
+>
+<TextView
+android:id="@+id/widget52"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:text="Party Name"
+android:textStyle="bold"
+android:layout_gravity="center_horizontal"
+>
+</TextView>
+<EditText
+android:id="@+id/name"
+android:layout_width="150px"
+android:layout_height="30px"
+android:textSize="18sp"
+android:gravity="left"
+android:layout_gravity="center_horizontal"
+>
+</EditText>
+<TextView
+android:id="@+id/widget54"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:text="Number of Passengers"
+android:textStyle="bold"
+android:layout_gravity="center_horizontal"
+>
+</TextView>
+<EditText
+android:id="@+id/count"
+android:layout_width="150px"
+android:layout_height="30px"
+android:textSize="18sp"
+android:layout_gravity="center_horizontal"
+>
+</EditText>
+<TextView
+android:id="@+id/widget56"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:text="Destination"
+android:textStyle="bold"
+android:layout_gravity="center_horizontal"
+>
+</TextView>
+<EditText
+android:id="@+id/destination"
+android:layout_width="150px"
+android:layout_height="30px"
+android:textSize="18sp"
+android:layout_gravity="center_horizontal"
+>
+</EditText>
 </LinearLayout>
+</RelativeLayout>
