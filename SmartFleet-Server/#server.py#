@@ -1,4 +1,4 @@
-import web
+ import web
 from collections import namedtuple
 
 ''' ####################  '''
@@ -9,7 +9,7 @@ render = web.template.render('templates/', cache=False)
 
 # Registered server calls
 urls = (
-    # http://serverIP:8080/RegisterParty?stationID=stationID;partyName=partyName;numPassengers=2;dest=abc METHOD: GET
+    # http://serverIP:8080/RegisterParty?stationID=stationID;partyName=partyName;numPassengers=2;dest=abc METHOD: POST
     '/RegisterParty', 'RegisterParty'
 )
 
