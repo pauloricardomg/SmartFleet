@@ -43,9 +43,9 @@ public class Register extends Activity implements OnClickListener{
         show = (TextView) this.findViewById(R.id.show);
         
          done = (Button)this.findViewById(R.id.done);
-         done.setOnClickListener(this);      
+         done.setOnClickListener(this);
     }
-
+    
 	@Override
 	public void onClick(View v) {
 		
@@ -54,12 +54,19 @@ public class Register extends Activity implements OnClickListener{
 	//	 Intent intent = new Intent(Intent.ACTION_VIEW, uri);
 	//	 startActivity(intent);
 		
+		String sname, scount, sdest;
 		
+		sname = name.getText().toString();
+		scount = (String) count.getText().toString();
+		sdest = (String) dest.getText().toString();
+		
+		String url;
+		url = String.format("http://192.168.1.78:8080/RegisterParty?stationID=1;partyName=%s;numPassengers=%s;dest=%s",sname,scount,sdest);
 		
 	//	 Make a get Request to the server.
 		String response = null;
 		try {
-		    response = Client.executeHttpGet("http://192.168.1.78:8080/RegisterParty?stationID=1;partyName=partyName;numPassengers=2;dest=abc");
+		    response = Client.executeHttpGet(url);
 		} catch (Exception e) {
 		    e.printStackTrace();
 		  }
