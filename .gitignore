@@ -8,5 +8,8 @@
 # Java class files
 *.class
 
+# Python classes
+*.pyc
+
 # generated GUI files
 *R.java

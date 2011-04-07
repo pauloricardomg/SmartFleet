@@ -1,5 +1,5 @@
 $def with (code)
 <?xml version="1.0"?>
-<RegisterParty-Response>
+<Simple-Response>
 	<Status>$code</Status>
-</RegisterParty-Response>
+</Simple-Response>
