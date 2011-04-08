@@ -1,0 +1,10 @@
+$def with (parties)
+<?xml version="1.0"?>
+<PartyInfo>
+	$for entry in parties:
+	<Party>
+		<name>$entry.name</name>
+		<passengers>$entry.numPassengers</passengers>
+		<destination>$entry.dest</destination>
+	</Party>
+</PartyInfo>

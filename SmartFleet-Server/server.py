@@ -1,4 +1,5 @@
 import web
+import socket
 from collections import namedtuple
 
 ''' ####################  '''
@@ -16,7 +17,9 @@ urls = (
 	# http://serverIP:8080/RegisterStation?id=12345;name=Alameda;lat=53.123456;lon=22.1234567;ip=127.0.0.1;port=4001 METHOD: GET (Response: SimpleResponse.xml)
 	'/RegisterStation', 'RegisterStation',
 	# http://serverIP:8080/GetAllStations METHOD: GET (Response: StationInfo.xml)
-	'/GetAllStations', 'GetAllStations'
+	'/GetAllStations', 'GetAllStations',
+	# http://serverIP:8080/ArrivedAtStation?vehicleID=vehicle001;stationID=12345;freeSeats=3 METHOD: GET (Response: PartyInfo.xml)
+	'/ArrivedAtStation', 'ArrivedAtStation'
 )
 
 app = web.application(urls, globals())
@@ -40,6 +43,13 @@ class GetAllStations:
     def GET(self): # it is GET just for testing from the browser, change it later to POST
         return render.StationInfo(getAllStations())
 
+class ArrivedAtStation:
+    def GET(self): # it is GET just for testing from the browser, change it later to POST
+	result = arrivedAtStation(web.input())
+        return render.PartyInfo(result)
+
+
+
 
 web.webapi.internalerror = web.debugerror
 if __name__ == '__main__': app.run()
@@ -62,6 +72,9 @@ class Vehicle:
 		    self.lon = lon
 
 	def __eq__(self, other):
+		if(other == None):
+			return 0
+
 		return self.id == other.id
 
 class Party:
@@ -72,6 +85,9 @@ class Party:
 		    self.dest = dest
 
 	def __eq__(self, other):
+		if(other == None):
+			return 0
+
 		return self.name == other.name
 
 class Station:
@@ -86,6 +102,9 @@ class Station:
 		    self.queue = []
 
 	def __eq__(self, other):
+		if(other == None):
+			return 0
+
 		return self.id == other.id
 
 # Server data structures
@@ -127,7 +146,7 @@ def registerStation(input):
 
 	# Verify if station is already registered
 	if(activeStations.get(stationID) != None):
-		print "Station " + thisParty.name + " already registered. Rejecting request."
+		print "Station " + stationName + " already registered. Rejecting request."
 		return 0
 
 	# Add station to active stations
@@ -146,7 +165,7 @@ def registerParty(input):
 	# Retrieve station
 	station = activeStations.get(stationID)
 	if(station == None):
-		print "Station " + input.stationID + " not found. Rejecting request."
+		print "Station " + stationID + " not found. Rejecting request."
 		return 0
 
 	# Verify is party is already in station queue
@@ -161,3 +180,47 @@ def registerParty(input):
 	print "Station " + stationID + " queue: " + str(station.queue)
 
 	return 1
+
+def arrivedAtStation(input):
+	vehicleID = input.vehicleID
+	stationID = input.stationID
+	freeSeats = int(input.freeSeats)
+
+	print "Vehicle " + vehicleID + " arrived at station " + stationID + " with " + str(freeSeats) + " free seats."
+
+	station = activeStations.get(stationID)
+	if(station == None):
+		print "Station " + input.stationID + " not found. Rejecting request."
+		return []
+
+	boardingParties = []
+
+	for party in station.queue:
+		passengers = int(party.numPassengers)
+		if(freeSeats >= passengers):
+			freeSeats -= passengers
+			print "Boarding party " + party.name + " on vehicle " + vehicleID + ". Left seats: " + str(freeSeats)
+			boardingParties.append(party)
+			if(freeSeats == 0):
+				break
+
+	if(len(boardingParties) > 0):
+		msg = vehicleID + ";"
+
+		# Remove selected parties from queue
+		for party in boardingParties:
+			msg += party.name + ","
+			station.queue.remove(party)
+
+		host = station.ip
+		port = int(station.port)
+
+		print "Sending message to " + host + ":" + str(port) + ": " + msg
+		#TODO: UNCOMMENT HERE TO USE SOCKETS
+		#s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		#s.bind(("", 0))
+		#s.sendto(msg, (host, port))
+	else:
+		print "No parties on this station fit in this car."
+
+	return boardingParties
