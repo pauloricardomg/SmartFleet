@@ -1,0 +1,13 @@
+$def with (stations)
+<?xml version="1.0"?>
+<StationInfo>
+	$for entry in stations:
+	<Station>
+		<id>$entry.id</id>
+		<name>$entry.name</name>
+		<lat>$entry.lat</lat>
+		<lon>$entry.lon</lon>
+		<ip>$entry.ip</ip>
+		<port>$entry.port</port>
+	</Station>
+</StationInfo>

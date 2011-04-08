@@ -9,9 +9,14 @@ render = web.template.render('templates/', cache=False)
 
 # Registered server calls
 urls = (
-    # http://serverIP:8080/RegisterParty?stationID=stationID;partyName=partyName;numPassengers=2;dest=abc METHOD: GET
-    '/RegisterParty', 'RegisterParty',
-    '/RegisterStation', 'RegisterStation'
+	# http://serverIP:8080/RegisterVehicle?id=vehicle001;capacity=5;lat=42.438917;lon=42.438917 METHOD: GET (Response: SimpleResponse.xml)
+	'/RegisterVehicle', 'RegisterVehicle',
+	# http://serverIP:8080/RegisterParty?stationID=12345;partyName=EMDC;numPassengers=4;dest=4567 METHOD: GET (Response: SimpleResponse.xml)
+	'/RegisterParty', 'RegisterParty',
+	# http://serverIP:8080/RegisterStation?id=12345;name=Alameda;lat=53.123456;lon=22.1234567;ip=127.0.0.1;port=4001 METHOD: GET (Response: SimpleResponse.xml)
+	'/RegisterStation', 'RegisterStation',
+	# http://serverIP:8080/GetAllStations METHOD: GET (Response: StationInfo.xml)
+	'/GetAllStations', 'GetAllStations'
 )
 
 app = web.application(urls, globals())
@@ -26,6 +31,16 @@ class RegisterStation:
 	result = registerStation(web.input())
         return render.SimpleResponse(result)
 
+class RegisterVehicle:
+    def GET(self): # it is GET just for testing from the browser, change it later to POST
+	result = registerVehicle(web.input())
+        return render.SimpleResponse(result)
+
+class GetAllStations:
+    def GET(self): # it is GET just for testing from the browser, change it later to POST
+        return render.StationInfo(getAllStations())
+
+
 web.webapi.internalerror = web.debugerror
 if __name__ == '__main__': app.run()
 
@@ -38,17 +53,16 @@ if __name__ == '__main__': app.run()
 
 class Vehicle:
 
-	def __init__(self, id, capacity):
+	def __init__(self, id, capacity, lat, lon):
 		    self.id = id
 		    self.capacity = capacity
-		    self.used = 0
+		    self.current = 0
 		    self.battLevel = 0
-		    self.lastStation = ''
+		    self.lat = lat
+		    self.lon = lon
 
 	def __eq__(self, other):
 		return self.id == other.id
-
-
 
 class Party:
 
@@ -62,31 +76,54 @@ class Party:
 
 class Station:
 
-	def __init__(self, id, name, ip, port):
+	def __init__(self, id, name, lat, lon, ip, port):
 		    self.id = id
 		    self.name = name
 		    self.ip = ip
 		    self.port = port
+		    self.lat = lat
+		    self.lon = lon
+		    self.queue = []
 
 	def __eq__(self, other):
 		return self.id == other.id
 
 # Server data structures
 
-vehicles = { 'vehicle1' : Vehicle('vehicle1',5),
-	     'vehicle2' : Vehicle('vehicle1',5) }
-
 activeStations = {}
 
-stationQueues = {}
+activeVehicles = {}
 
 # Server interface
+
+def getAllStations():
+	result = []
+	if(len(activeStations) > 0):
+		result = activeStations.values()
+	print "Retrieving all stations."
+	return result
+
+def registerVehicle(input):
+	vehicleID = input.id
+	capacity = input.capacity
+	lat = input.lat
+	lon = input.lon
+
+	# Add vehicle to active vehicles
+	print "Registering vehicle " + vehicleID + ". Capacity: " + capacity + ". Lat: " + lat + ", Lon: " + lon 
+	activeVehicles[vehicleID] = Vehicle(vehicleID, capacity, lat, lon)
+	print "Active vehicles " + str(activeVehicles)
+
+	return 1
+
 
 def registerStation(input):
 	stationID = input.id
 	stationName = input.name
 	stationIP = input.ip
 	stationPort = input.port
+	stationLat = input.lat
+	stationLon = input.lon
 
 	# Verify if station is already registered
 	if(activeStations.get(stationID) != None):
@@ -94,28 +131,33 @@ def registerStation(input):
 		return 0
 
 	# Add station to active stations
-	print "Registering station " + stationName + ". IP: " + stationIP + ". Port: " + stationPort 
-	activeStations[stationID] = Station(stationID, stationName, stationIP, stationPort)
+	print "Registering station " + stationName + ". IP: " + stationIP + ". Port: " + stationPort + ". Lat: " + stationLat + ", Lon: " + stationLon 
+	activeStations[stationID] = Station(stationID, stationName, stationLat, stationLon, stationIP, stationPort)
 	print "Active stations " + str(activeStations)
 
 	return 1
 
 def registerParty(input):
-	# Retrieve station party queue
-	stationQueue = stationQueues.get(input.stationID)
-	if(stationQueue == None):
-		print "Station " + input.stationID + " not found. Adding to list of stations."
-		stationQueue = stationQueues[input.stationID] = []
+	stationID = input.stationID
+	partyName = input.partyName
+	numPassengers = input.numPassengers
+	destination = input.dest
+	
+	# Retrieve station
+	station = activeStations.get(stationID)
+	if(station == None):
+		print "Station " + input.stationID + " not found. Rejecting request."
+		return 0
 
 	# Verify is party is already in station queue
-	thisParty = Party(input.partyName, input.numPassengers, input.dest)
-	if(thisParty in stationQueue):
-		print "Party " + thisParty.name + " already registered. Rejecting request."
+	thisParty = Party(partyName, numPassengers, destination)
+	if(thisParty in station.queue):
+		print "Party " + partyName + " already registered. Rejecting request."
 		return 0
 
 	# Add party to station queue
-	print "Registering party " + thisParty.name + ". Passengers: " + thisParty.numPassengers + ". Destination: " + thisParty.dest 
-	stationQueue.append(thisParty)
-	print "Station " + input.stationID + " queue: " + str(stationQueue)
+	print "Registering party " + partyName + ". Passengers: " + numPassengers + ". Destination: " + destination 
+	station.queue.append(thisParty)
+	print "Station " + stationID + " queue: " + str(station.queue)
 
 	return 1
