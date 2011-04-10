@@ -1,12 +1,106 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
-    android:layout_width="fill_parent"
-    android:layout_height="fill_parent"
-    >
-<TextView  
-    android:layout_width="fill_parent" 
-    android:layout_height="wrap_content" 
-    android:text="@string/hello"
-    />
+<AbsoluteLayout
+android:id="@+id/widget0"
+android:layout_width="fill_parent"
+android:layout_height="fill_parent"
+xmlns:android="http://schemas.android.com/apk/res/android"
+>
+<LinearLayout
+android:id="@+id/widget34"
+android:layout_width="312px"
+android:layout_height="420px"
+android:orientation="vertical"
+android:layout_x="4px"
+android:layout_y="6px"
+>
+<TextView
+android:id="@+id/widget1"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:text="Party Names"
+android:textStyle="bold"
+android:gravity="center"
+>
+</TextView>
+<EditText
+android:id="@+id/name"
+android:layout_width="293px"
+android:layout_height="wrap_content"
+android:textSize="18sp"
+android:textStyle="bold"
+>
+</EditText>
+<TextView
+android:id="@+id/widget37"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:text="Destination"
+android:textStyle="bold"
+>
+</TextView>
+<EditText
+android:id="@+id/dest"
+android:layout_width="293px"
+android:layout_height="wrap_content"
+android:textSize="18sp"
+android:textStyle="bold"
+>
+</EditText>
+<TextView
+android:id="@+id/widget39"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:text="Waiting Time"
+android:textStyle="bold"
+>
+</TextView>
+<EditText
+android:id="@+id/time"
+android:layout_width="291px"
+android:layout_height="wrap_content"
+android:textSize="18sp"
+android:textStyle="bold"
+>
+</EditText>
+<TextView
+android:id="@+id/widget41"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:text="Current Charge"
+android:textStyle="bold"
+>
+</TextView>
+<EditText
+android:id="@+id/charge"
+android:layout_width="295px"
+android:layout_height="wrap_content"
+android:textSize="18sp"
+android:textStyle="bold"
+>
+</EditText>
+<TextView
+android:id="@+id/widget43"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:text="Other Vehicles Charge"
+android:textStyle="bold"
+>
+</TextView>
+<EditText
+android:id="@+id/ovcharge"
+android:layout_width="297px"
+android:layout_height="wrap_content"
+android:textSize="18sp"
+android:textStyle="bold"
+>
+</EditText>
+<TextView
+android:id="@+id/show"
+android:layout_width="306px"
+android:layout_height="54px"
+android:gravity="center"
+android:layout_gravity="center_horizontal"
+>
+</TextView>
 </LinearLayout>
+</AbsoluteLayout>
