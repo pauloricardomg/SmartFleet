@@ -100,6 +100,7 @@ class Station:
 		    self.lat = lat
 		    self.lon = lon
 		    self.queue = []
+		    self.vehicles = []
 
 	def __eq__(self, other):
 		if(other == None):
@@ -192,6 +193,8 @@ def arrivedAtStation(input):
 	if(station == None):
 		print "Station " + input.stationID + " not found. Rejecting request."
 		return []
+
+	station.vehicles.append(vehicleID)
 
 	boardingParties = []
 
