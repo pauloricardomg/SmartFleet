@@ -23,7 +23,7 @@ public class XmlUtils {
 		InputStream xml = new ByteArrayInputStream(bytes);
 		xpp.setInput(xml, null);
 
-		List<StationInfo> infos = new LinkedList<StationInfo>();
+		List<StationInfo> infos = null;
 		
 		StationInfo currentInfo = null;
 		String attr = null;
@@ -39,9 +39,11 @@ public class XmlUtils {
 				if(name.equals("Station")){
 					currentInfo = new StationInfo();
 					infos.add(currentInfo);
-				} else if(!name.equals("StationInfo")){
+				} else if(name.equals("StationInfo")){
+					infos = new LinkedList<StationInfo>();
+				} else {
 					attr = name;
-				}
+				} 
 				break;
 				
 			case XmlPullParser.END_TAG:
@@ -95,4 +97,14 @@ public class XmlUtils {
 		ID, NAME, LAT, LON, IP, PORT, QUEUESIZE, WAITTIME, VEHICLES
 	}
 	
+	
+	public static void main(String[] args) {
+		
+		String nav = "Hello;World";
+		
+		String[] split = nav.split(";");
+		System.out.println(split[0]);
+		System.out.println(nav.split(";")[1]);
+		
+	}
 }

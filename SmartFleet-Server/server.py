@@ -220,9 +220,9 @@ def arrivedAtStation(input):
 
 		print "Sending message to " + host + ":" + str(port) + ": " + msg
 		#TODO: UNCOMMENT HERE TO USE SOCKETS
-		#s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		#s.bind(("", 0))
-		#s.sendto(msg, (host, port))
+		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		s.connect((host, port))
+		s.send(msg)
 	else:
 		print "No parties on this station fit in this car."
 

@@ -22,10 +22,12 @@ import com.google.android.maps.OverlayItem;
 
 public class MonitoringActivity extends MapActivity {
 
+	private static final long STATIONS_QUERY_TIME = 10000L;
 	private MapView map=null;
-	//private MyLocationOverlay me=null;
 	
+	List<StationInfo> currentStations;
 	SmartFleetOverlay stationsOverlay;;
+	Thread thrd;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -39,11 +41,12 @@ public class MonitoringActivity extends MapActivity {
 		map.getController().setZoom(17);
 		map.setBuiltInZoomControls(true);
 		
-		List<StationInfo> activeStations = lookupStations("http://192.168.0.129:8080/GetAllStations");
-		
 		Drawable marker = getResources().getDrawable(R.drawable.train);
 		marker.setBounds(0, 0, marker.getIntrinsicWidth(), marker.getIntrinsicHeight());
-		stationsOverlay = new SmartFleetOverlay(marker, getOverlayItems(activeStations));
+		stationsOverlay = new SmartFleetOverlay(marker);
+		//stationsOverlay.update(new LinkedList<OverlayItem>());
+		
+		currentStations = null;
 		
 		map.getOverlays().add(stationsOverlay);
 
@@ -52,12 +55,46 @@ public class MonitoringActivity extends MapActivity {
 	@Override
 	public void onResume() {
 		super.onResume();
+		
+		if(thrd == null){
+			thrd = new Thread(new Runnable() {
+				public void run() {
+					while (!Thread.interrupted()) {
+						List<StationInfo> activeStations = lookupStations("http://194.210.225.30:8080/GetAllStations");
+						
+						if(activeStations != null && !activeStations.equals(currentStations)){
+							currentStations = activeStations;
+							List<OverlayItem> overlayItems = getOverlayItems(activeStations);
+							stationsOverlay.update(overlayItems);
+						}
+						
+						try {
+							Thread.sleep(STATIONS_QUERY_TIME);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			});
+			thrd.start();
+		}
 	}		
 
 	@Override
 	public void onPause() {
 		super.onPause();
-	}		
+		if (thrd != null)
+			thrd.interrupt();
+		thrd = null;
+	}
+	
+	@Override
+	public void onDestroy(){
+		super.onDestroy();
+		if (thrd != null)
+			thrd.interrupt();
+		thrd = null;
+	}
 
  	@Override
 	protected boolean isRouteDisplayed() {
@@ -91,13 +128,21 @@ public class MonitoringActivity extends MapActivity {
 
 	private class SmartFleetOverlay extends ItemizedOverlay<OverlayItem> {
 		private List<OverlayItem> items;
-
-		public SmartFleetOverlay(Drawable marker, List<OverlayItem> items) {
+		private Drawable marker;
+		
+		public SmartFleetOverlay(Drawable marker) {
 			super(marker);
+			this.marker = marker;
+			boundCenterBottom(this.marker);
+		}
+		
+		
+		public void update(List<OverlayItem> items){
 			this.items = items;
-
-			boundCenterBottom(marker);
+			
+		    //setLastFocusedIndex(-1);
 			populate();
+			map.postInvalidate();
 		}
 		
 		@Override
@@ -109,8 +154,7 @@ public class MonitoringActivity extends MapActivity {
 		protected boolean onTap(int i) {
 			
 			Toast makeText = Toast.makeText(MonitoringActivity.this,
-											items.get(i).getSnippet(),
-											Toast.LENGTH_LONG);
+											items.get(i).getSnippet(),Toast.LENGTH_LONG);
 			
 			
 			
@@ -133,6 +177,7 @@ public class MonitoringActivity extends MapActivity {
 				list.add(new OverlayItem(getPoint(info.getLat(), info.getLon()),
 						info.getName(),
 						info.getName() + " - Station\n" +
+		
 						"Number of passengers waiting: " + info.getQueueSize() + "\n" +
 						"Average wait time: " + info.getWaitTime() + "\n" + 
 						"Vehicles present: " + info.getVehicles() + "\n"));

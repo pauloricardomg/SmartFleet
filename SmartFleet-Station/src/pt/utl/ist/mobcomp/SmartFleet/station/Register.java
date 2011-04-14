@@ -1,35 +1,26 @@
 package pt.utl.ist.mobcomp.SmartFleet.station;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import java.util.StringTokenizer;
-
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.NameValuePair;
-
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
-
+import pt.utl.ist.mobcomp.SmartFleet.util.HTTPClient;
 import android.app.Activity;
-import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
+import android.view.View;
+import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.view.View;
-import android.view.View.OnClickListener;
 
 public class Register extends Activity implements OnClickListener{
 
@@ -137,7 +128,7 @@ public class Register extends Activity implements OnClickListener{
 		//Make a get Request to the server
 		String response = null;
 		try {
-			response = Client.executeHttpGet(url);
+			response = HTTPClient.executeHttpGet(url);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
