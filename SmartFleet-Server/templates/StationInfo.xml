@@ -12,8 +12,8 @@ $code:
 		<lon>$entry.lon</lon>
 		<ip>$entry.ip</ip>
 		<port>$entry.port</port>
-		<queueSize>$size(entry.queue)</queueSize>
-		<waitTime>0</waitTime>
+		<queueSize>$entry.peopleWaiting()</queueSize>
+		<waitTime>$entry.avgWait</waitTime>
 		<vehicles>$size(entry.vehicles)</vehicles>
 	</Station>
 </StationInfo>

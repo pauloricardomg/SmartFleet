@@ -11,11 +11,77 @@ import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
 import pt.utl.ist.mobcomp.SmartFleet.bean.StationInfo;
+import pt.utl.ist.mobcomp.SmartFleet.bean.VehicleInfo;
 
 
 public class XmlUtils {
 
-	public static List<StationInfo> parsexml (String xmlTest) throws XmlPullParserException, IOException {
+	public static List<VehicleInfo> parseVehicleInfos(String xmlTest) throws XmlPullParserException, IOException {
+
+		XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+		XmlPullParser xpp = factory.newPullParser();
+		byte[] bytes = xmlTest.getBytes();
+		InputStream xml = new ByteArrayInputStream(bytes);
+		xpp.setInput(xml, null);
+
+		List<VehicleInfo> infos = null;
+		
+		VehicleInfo currentInfo = null;
+		String attr = null;
+		String name;
+		
+		while (true) {
+			int event = xpp.next();
+			switch(event){
+	
+			case XmlPullParser.START_TAG:
+				name = xpp.getName();
+				
+				if(name.equals("Vehicle")){
+					currentInfo = new VehicleInfo();
+					infos.add(currentInfo);
+				} else if(name.equals("VehicleInfo")){
+					infos = new LinkedList<VehicleInfo>();
+				} else {
+					attr = name;
+				} 
+				break;
+				
+			case XmlPullParser.END_TAG:
+				name = xpp.getName();
+				
+				if(name.equals("Vehicle")){
+					currentInfo = null;
+				} else if(!name.equals("VehicleInfo")){
+					attr = null;
+				}
+				break;
+				
+			case XmlPullParser.TEXT:
+				if(currentInfo != null && attr != null){
+					String text = xpp.getText();
+					if(attr.equals("id")){
+						currentInfo.setId(text);
+					} else if(attr.equals("lat")){
+						currentInfo.setLat(text);
+					} else if(attr.equals("lon")){
+						currentInfo.setLon(text);
+					} else if(attr.equals("battLevel")){
+						int battLevel = new Integer(text);
+						currentInfo.setBattLevel(battLevel);
+					}
+				}
+				break;
+				
+			case XmlPullParser.END_DOCUMENT:
+				return infos;
+			
+			}
+		}
+
+	}
+	
+	public static List<StationInfo> parseStationInfos(String xmlTest) throws XmlPullParserException, IOException {
 
 		XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
 		XmlPullParser xpp = factory.newPullParser();

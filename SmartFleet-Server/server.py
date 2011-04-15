@@ -1,5 +1,6 @@
 import web
 import socket
+import time
 from collections import namedtuple
 
 ''' ####################  '''
@@ -18,6 +19,8 @@ urls = (
 	'/RegisterStation', 'RegisterStation',
 	# http://serverIP:8080/GetAllStations METHOD: GET (Response: StationInfo.xml)
 	'/GetAllStations', 'GetAllStations',
+	# http://serverIP:8080/GetAllVehicles METHOD: GET (Response: StationInfo.xml)
+	'/GetAllVehicles', 'GetAllVehicles',
 	# http://serverIP:8080/ArrivedAtStation?vehicleID=vehicle001;stationID=12345;freeSeats=3 METHOD: GET (Response: PartyInfo.xml)
 	'/ArrivedAtStation', 'ArrivedAtStation'
 )
@@ -42,6 +45,11 @@ class RegisterVehicle:
 class GetAllStations:
     def GET(self): # it is GET just for testing from the browser, change it later to POST
         return render.StationInfo(getAllStations())
+
+class GetAllVehicles:
+    def GET(self): # it is GET just for testing from the browser, change it later to POST
+        return render.VehicleInfo(getAllVehicles())
+
 
 class ArrivedAtStation:
     def GET(self): # it is GET just for testing from the browser, change it later to POST
@@ -83,6 +91,7 @@ class Party:
 		    self.name = name
 		    self.numPassengers = numPassengers
 		    self.dest = dest
+		    self.arrival = int(time.time())
 
 	def __eq__(self, other):
 		if(other == None):
@@ -101,6 +110,24 @@ class Station:
 		    self.lon = lon
 		    self.queue = []
 		    self.vehicles = []
+		    self.parties = 0
+		    self.avgWait = 0
+
+	def peopleWaiting(self):
+		result = 0
+		for party in self.queue:
+			result += int(party.numPassengers)
+
+		return result
+
+	def removeParties(self, partiesToRemove):
+		now = int(time.time())
+		# Remove selected parties from queue
+		for party in partiesToRemove:
+			waitTime = now - party.arrival
+			self.parties = self.parties+1
+			self.avgWait = ((self.avgWait * (self.parties-1)) + waitTime)/self.parties
+			self.queue.remove(party)
 
 	def __eq__(self, other):
 		if(other == None):
@@ -121,6 +148,13 @@ def getAllStations():
 	if(len(activeStations) > 0):
 		result = activeStations.values()
 	print "Retrieving all stations."
+	return result
+
+def getAllVehicles():
+	result = []
+	if(len(activeVehicles) > 0):
+		result = activeVehicles.values()
+	print "Retrieving all vehicles: " + str(activeVehicles)
 	return result
 
 def registerVehicle(input):
@@ -194,7 +228,14 @@ def arrivedAtStation(input):
 		print "Station " + input.stationID + " not found. Rejecting request."
 		return []
 
+	vehicle = activeVehicles.get(vehicleID)
+	if(vehicle == None):
+		print "Vehicle " + input.stationID + " not found. Rejecting request."
+		return []
+
 	station.vehicles.append(vehicleID)
+	vehicle.lat = station.lat
+	vehicle.lon = station.lon
 
 	boardingParties = []
 
@@ -210,19 +251,18 @@ def arrivedAtStation(input):
 	if(len(boardingParties) > 0):
 		msg = vehicleID + ";"
 
-		# Remove selected parties from queue
 		for party in boardingParties:
 			msg += party.name + ","
-			station.queue.remove(party)
+
+		station.removeParties(boardingParties)
 
 		host = station.ip
 		port = int(station.port)
 
 		print "Sending message to " + host + ":" + str(port) + ": " + msg
-		#TODO: UNCOMMENT HERE TO USE SOCKETS
-		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		s.connect((host, port))
-		s.send(msg)
+		#s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		#s.connect((host, port))
+		#s.send(msg)
 	else:
 		print "No parties on this station fit in this car."
 
