@@ -74,7 +74,7 @@ private String contact_server(String url)
 	//Make a get Request to the server
 	String response = null;
 	try {
-	    response = Client.executeHttpGet(url);
+	    response =  Client.executeHttpGet(url);
 	} catch (Exception e) {
 	    e.printStackTrace();
 	  }
@@ -105,15 +105,19 @@ private String validate (String response)
 
 private void register_vehicle(){
 	String url,response=null,status;
-	url = String.format("http://192.168.1.78:8080/RegisterVehicle?id=vehicle001;capacity=5;lat=42.438917;lon=42.438917");
+	try{
+	url = String.format("http://194.210.224.249:8080/RegisterVehicle?id=vehicle001;capacity=5;lat=42.438917;lon=42.438917");
 	response = contact_server(url);
+	}catch(Exception e){
+		System.out.println("Exception here: "+ e.getMessage());
+	}
 	status = validate(response);
 	 if (status == "SUCCESS")
 			show.setText("Vehicle Registration Success!!");
 		else if (status == "FAIL")
 			show.setText("Vehicle already registered!");
 		else
-			show.setText("Request timed out!!");
+			show.setText("Vehicle registration request timed out!! Please relaunch");
  
 }
 

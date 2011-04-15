@@ -17,19 +17,18 @@ android:layout_y="76px"
 android:id="@+id/widget30"
 android:layout_width="91px"
 android:layout_height="32px"
-android:text="Party Name"
+android:text="Party Names"
 android:textStyle="bold"
 android:layout_gravity="center_horizontal"
 >
 </TextView>
 <EditText
-android:id="@+id/widget31"
-android:layout_width="145px"
+android:id="@+id/pnames"
 android:layout_height="wrap_content"
 android:textSize="18sp"
 android:textStyle="bold"
 android:layout_gravity="center_horizontal"
->
+android:layout_width="match_parent" android:editable="false">
 </EditText>
 <TextView
 android:id="@+id/widget32"
@@ -41,14 +40,14 @@ android:layout_gravity="center_horizontal"
 >
 </TextView>
 <EditText
-android:id="@+id/widget33"
-android:layout_width="146px"
+android:id="@+id/vid"
 android:layout_height="wrap_content"
 android:textSize="18sp"
 android:textStyle="bold"
 android:layout_gravity="center_horizontal"
->
+android:layout_width="match_parent" android:editable="false">
 </EditText>
+<Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center_horizontal" android:text="@string/Back" android:gravity="center|center_horizontal" android:id="@+id/back_button"></Button>
 </LinearLayout>
 <LinearLayout
 android:id="@+id/widget36"

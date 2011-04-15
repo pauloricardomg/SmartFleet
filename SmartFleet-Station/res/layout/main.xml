@@ -56,14 +56,7 @@ android:textStyle="bold"
 android:layout_gravity="center_horizontal"
 >
 </TextView>
-<EditText
-android:id="@+id/dest"
-android:layout_width="320px"
-android:layout_height="61px"
-android:textSize="18sp"
-android:layout_gravity="center_horizontal"
->
-</EditText>
+<Spinner android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/dest"></Spinner>
 <Button
 android:id="@+id/done"
 android:layout_width="117px"
