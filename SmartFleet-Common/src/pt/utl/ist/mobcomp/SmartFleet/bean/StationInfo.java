@@ -71,6 +71,14 @@ public class StationInfo {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((ip == null) ? 0 : ip.hashCode());
+		result = prime * result + ((lat == null) ? 0 : lat.hashCode());
+		result = prime * result + ((lon == null) ? 0 : lon.hashCode());
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result + port;
+		result = prime * result + queueSize;
+		result = prime * result + vehicles;
+		result = prime * result + waitTime;
 		return result;
 	}
 	@Override
@@ -86,6 +94,34 @@ public class StationInfo {
 			if (other.id != null)
 				return false;
 		} else if (!id.equals(other.id))
+			return false;
+		if (ip == null) {
+			if (other.ip != null)
+				return false;
+		} else if (!ip.equals(other.ip))
+			return false;
+		if (lat == null) {
+			if (other.lat != null)
+				return false;
+		} else if (!lat.equals(other.lat))
+			return false;
+		if (lon == null) {
+			if (other.lon != null)
+				return false;
+		} else if (!lon.equals(other.lon))
+			return false;
+		if (name == null) {
+			if (other.name != null)
+				return false;
+		} else if (!name.equals(other.name))
+			return false;
+		if (port != other.port)
+			return false;
+		if (queueSize != other.queueSize)
+			return false;
+		if (vehicles != other.vehicles)
+			return false;
+		if (waitTime != other.waitTime)
 			return false;
 		return true;
 	}

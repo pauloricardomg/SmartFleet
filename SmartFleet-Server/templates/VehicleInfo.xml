@@ -1,19 +1,15 @@
-$def with (stations)
-$code:
-    def size(s):
-            return len(s)
+$def with (vehicles)
 <?xml version="1.0"?>
-<StationInfo>
-	$for entry in stations:
-	<Station>
+<VehicleInfo>
+	$for entry in vehicles:
+	<Vehicle>
 		<id>$entry.id</id>
-		<name>$entry.name</name>
 		<lat>$entry.lat</lat>
 		<lon>$entry.lon</lon>
-		<ip>$entry.ip</ip>
-		<port>$entry.port</port>
-		<queueSize>$size(entry.queue)</queueSize>
-		<waitTime>0</waitTime>
-		<vehicles>$size(entry.vehicles)</vehicles>
-	</Station>
-</StationInfo>
+		<passengers>TODO</passengers>
+		<battLevel>$entry.battLevel</battLevel>
+		<travelPath>TODO</travelPath>
+		<lastInteraction>TODO</lastInteraction>
+		<lastUpdate>TODO</lastUpdate>
+	</Vehicle>
+</VehicleInfo>

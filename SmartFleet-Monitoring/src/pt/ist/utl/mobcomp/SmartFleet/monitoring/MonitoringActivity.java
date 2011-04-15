@@ -1,17 +1,14 @@
 package pt.ist.utl.mobcomp.SmartFleet.monitoring;
 
-import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
-
-import org.xmlpull.v1.XmlPullParserException;
+import java.util.Properties;
 
 import pt.utl.ist.mobcomp.SmartFleet.bean.StationInfo;
-import pt.utl.ist.mobcomp.SmartFleet.util.HTTPClient;
-import pt.utl.ist.mobcomp.SmartFleet.util.XmlUtils;
+import pt.utl.ist.mobcomp.SmartFleet.bean.VehicleInfo;
+import pt.utl.ist.mobcomp.SmartFleet.util.LookupUtils;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.view.KeyEvent;
 import android.widget.Toast;
 
 import com.google.android.maps.GeoPoint;
@@ -22,18 +19,32 @@ import com.google.android.maps.OverlayItem;
 
 public class MonitoringActivity extends MapActivity {
 
-	private static final long STATIONS_QUERY_TIME = 10000L;
 	private MapView map=null;
 	
 	List<StationInfo> currentStations;
-	SmartFleetOverlay stationsOverlay;;
-	Thread thrd;
+	List<VehicleInfo> currentVehicles;
+	SmartFleetOverlay stationsOverlay;
+	SmartFleetOverlay vehiclesOverlay;
+	Thread stationsThread;
+	Thread vehiclesThread;
+	
+	String ip;
+	String port;
+	long stationPeriod;
+	long vehiclePeriod;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
-
+		
+		Properties properties = LookupUtils.readPropertiesFile(this.getResources().getAssets(), "monitoring.properties");
+	    
+	    ip = properties.getProperty("server_ip");
+	    port = properties.getProperty("server_port");
+	    stationPeriod = new Long(properties.getProperty("station_update_period"));
+	    vehiclePeriod = new Long(properties.getProperty("vehicle_update_period"));  
+		
 		map=(MapView)findViewById(R.id.mapView);
 
 		//Marques de Pombal
@@ -41,78 +52,112 @@ public class MonitoringActivity extends MapActivity {
 		map.getController().setZoom(17);
 		map.setBuiltInZoomControls(true);
 		
+		//Stations overlay
 		Drawable marker = getResources().getDrawable(R.drawable.train);
 		marker.setBounds(0, 0, marker.getIntrinsicWidth(), marker.getIntrinsicHeight());
 		stationsOverlay = new SmartFleetOverlay(marker);
 		//stationsOverlay.update(new LinkedList<OverlayItem>());
 		
+		//Vehicles overlay
+		marker = getResources().getDrawable(R.drawable.ship);
+		marker.setBounds(0, 0, marker.getIntrinsicWidth(), marker.getIntrinsicHeight());
+		vehiclesOverlay = new SmartFleetOverlay(marker);
+		
 		currentStations = null;
+		currentVehicles = null;
 		
 		map.getOverlays().add(stationsOverlay);
+		map.getOverlays().add(vehiclesOverlay);
 
 	}
+	
+
 
 	@Override
 	public void onResume() {
-		super.onResume();
+
+		if(stationsThread == null){
+			stationsThread = new Thread(getStationMonitor());
+			stationsThread.start();
+		}
 		
-		if(thrd == null){
-			thrd = new Thread(new Runnable() {
-				public void run() {
-					while (!Thread.interrupted()) {
-						List<StationInfo> activeStations = lookupStations("http://194.210.225.30:8080/GetAllStations");
-						
-						if(activeStations != null && !activeStations.equals(currentStations)){
-							currentStations = activeStations;
-							List<OverlayItem> overlayItems = getOverlayItems(activeStations);
-							stationsOverlay.update(overlayItems);
-						}
-						
-						try {
-							Thread.sleep(STATIONS_QUERY_TIME);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
+		if(vehiclesThread == null){
+			vehiclesThread = new Thread(getVehicleMonitor());
+			vehiclesThread.start();
+		}
+		
+		super.onResume();
+	}
+
+	private Runnable getStationMonitor() {
+		return new Runnable() {
+			public void run() {
+				while (!Thread.interrupted()) {
+					List<StationInfo> activeStations = LookupUtils.lookupStations("http://" + ip + ":" + port + "/GetAllStations");
+					
+					if(activeStations != null && !activeStations.equals(currentStations)){
+						currentStations = activeStations;
+						List<OverlayItem> overlayItems = getStationItems(activeStations);
+						stationsOverlay.update(overlayItems);
+					}
+					
+					try {
+						Thread.sleep(stationPeriod);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
 					}
 				}
-			});
-			thrd.start();
-		}
+			}
+		};
 	}		
+	
+	private Runnable getVehicleMonitor() {
+		return new Runnable() {
+			public void run() {
+				while (!Thread.interrupted()) {
+					List<VehicleInfo> activeVehicles = LookupUtils.lookupVehicles("http://" + ip + ":" + port + "/GetAllVehicles");
+					
+					if(activeVehicles != null && !activeVehicles.equals(currentVehicles)){
+						currentVehicles = activeVehicles;
+						List<OverlayItem> overlayItems = getVehicleItems(activeVehicles);
+						vehiclesOverlay.update(overlayItems);
+					}
+					
+					try {
+						Thread.sleep(vehiclePeriod);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		};
+	}
 
 	@Override
 	public void onPause() {
+		if (stationsThread != null)
+			stationsThread.interrupt();
+		if (vehiclesThread != null)
+			vehiclesThread.interrupt();
+		vehiclesThread = null;		
+		stationsThread = null;
 		super.onPause();
-		if (thrd != null)
-			thrd.interrupt();
-		thrd = null;
 	}
 	
 	@Override
 	public void onDestroy(){
+		if (stationsThread != null)
+			stationsThread.interrupt();
+		stationsThread = null;
+		if (vehiclesThread != null)
+			vehiclesThread.interrupt();
+		vehiclesThread = null;
 		super.onDestroy();
-		if (thrd != null)
-			thrd.interrupt();
-		thrd = null;
 	}
 
  	@Override
 	protected boolean isRouteDisplayed() {
 		return(false);
-	}
-
- 	@Override
-	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		if (keyCode == KeyEvent.KEYCODE_S) {
-			map.setSatellite(!map.isSatellite());
-			return(true);
-		}
-		else if (keyCode == KeyEvent.KEYCODE_Z) {
-			map.displayZoomControls(true);
-			return(true);
-		}
-
-		return(super.onKeyDown(keyCode, event));
 	}
 
  	private GeoPoint getPoint(String lat, String lon){
@@ -133,7 +178,9 @@ public class MonitoringActivity extends MapActivity {
 		public SmartFleetOverlay(Drawable marker) {
 			super(marker);
 			this.marker = marker;
+			this.items = new LinkedList<OverlayItem>();
 			boundCenterBottom(this.marker);
+			populate();
 		}
 		
 		
@@ -169,7 +216,7 @@ public class MonitoringActivity extends MapActivity {
 		}
 	}
 	
-	private List<OverlayItem> getOverlayItems(List<StationInfo> infos){
+	private List<OverlayItem> getStationItems(List<StationInfo> infos){
 		List<OverlayItem> list = new LinkedList<OverlayItem>();
 		
 		if(infos != null){
@@ -179,7 +226,7 @@ public class MonitoringActivity extends MapActivity {
 						info.getName() + " - Station\n" +
 		
 						"Number of passengers waiting: " + info.getQueueSize() + "\n" +
-						"Average wait time: " + info.getWaitTime() + "\n" + 
+						"Average wait time: " + info.getWaitTime() + "s \n" + 
 						"Vehicles present: " + info.getVehicles() + "\n"));
 			}
 		}
@@ -187,29 +234,18 @@ public class MonitoringActivity extends MapActivity {
 		return list;
 	}
 	
-	private List<StationInfo> lookupStations(String url)
-	{
-
-		//Make a get Request to the server
-		String response = null;
-		try {
-			response = HTTPClient.executeHttpGet(url);
-		} catch (Exception e) {
-			e.printStackTrace();
-			return null;
+	private List<OverlayItem> getVehicleItems(List<VehicleInfo> infos){
+		List<OverlayItem> list = new LinkedList<OverlayItem>();
+		
+		if(infos != null){
+			for (VehicleInfo info : infos) {
+				list.add(new OverlayItem(getPoint(info.getLat(), info.getLon()), info.getId(),
+						"Vehicle: " + info.getId() + "\n" +
+						"Battery Level: " + info.getBattLevel()));
+			}
 		}
-
-		//Parse the received xml to see if the registration was successful or not.	
-		List<StationInfo> result = null;
-		try {
-			result = XmlUtils.parsexml(response);
-		} catch (XmlPullParserException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		return result;
+	
+		return list;
 	}
     
 }
