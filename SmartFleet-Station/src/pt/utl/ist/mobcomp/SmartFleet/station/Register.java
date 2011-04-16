@@ -1,6 +1,7 @@
 package pt.utl.ist.mobcomp.SmartFleet.station;
 import pt.utl.ist.mobcomp.SmartFleet.bean.StationInfo;
 import pt.utl.ist.mobcomp.SmartFleet.util.HTTPClient;
+import pt.utl.ist.mobcomp.SmartFleet.util.LookupUtils;
 import pt.utl.ist.mobcomp.SmartFleet.util.XmlUtils;
 
 import java.io.BufferedInputStream;
@@ -12,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Properties;
 import java.util.StringTokenizer;
 
 import org.xmlpull.v1.XmlPullParser;
@@ -46,6 +48,15 @@ public class Register extends Activity implements OnClickListener{
 	List<StationInfo> activeStations;
 	private static final long STATIONS_QUERY_TIME = 10000L;
 	ArrayAdapter<String> adapter;
+	
+	String id;
+	String stationName;
+	String lat;
+	String lon;
+	String stationIP;
+	String port;
+	String serverIP;
+	String serverPort;
 
 
 	@Override
@@ -62,7 +73,17 @@ public class Register extends Activity implements OnClickListener{
 		done = (Button)this.findViewById(R.id.done);
 		done.setOnClickListener(this);
 		info = new InfoSocket();
-
+		
+		Properties prop = LookupUtils.readPropertiesFile(this.getResources().getAssets(), "station.conf");
+		id = prop.getProperty("id");
+		stationName = prop.getProperty("name");
+		lat = prop.getProperty("lat");
+		lon = prop.getProperty("lon");
+		stationIP = prop.getProperty("station_ip");
+		port = prop.getProperty("port");
+		serverIP = prop.getProperty("server_ip");
+		serverPort = prop.getProperty("server_port");
+		
 		//Set the spinner in the beginning
 		adapter = new ArrayAdapter<String>(this,
 				android.R.layout.simple_spinner_item);
@@ -109,8 +130,8 @@ public class Register extends Activity implements OnClickListener{
 		return new Runnable() {
 			public void run() {
 				while (!Thread.interrupted()) {
-					activeStations = lookupStations("http://192.168.1.78:8080/GetAllStations");
-					while (activeStations!=null){
+					activeStations = lookupStations(getServerAddress() + "/GetAllStations");
+					if (activeStations!=null){
 						runOnUiThread(new Runnable() {
 							@Override
 							public void run() {
@@ -131,9 +152,15 @@ public class Register extends Activity implements OnClickListener{
 					}
 				}
 			}
+
+
 		};
 	}
 	
+	
+	private String getServerAddress() {
+		return "http://" + serverIP + ":" + serverPort;
+	}
 	
 	public void updateSpinner(){
 
@@ -182,7 +209,7 @@ public class Register extends Activity implements OnClickListener{
 		//Try to register party.
 		String url,response=null,status;
 		try{
-			url = String.format("http://192.168.1.78:8080/RegisterParty?stationID=12345;partyName=%s;numPassengers=%s;dest=%s",pname,pcount,pdest);
+			url = String.format(getServerAddress() + "/RegisterParty?stationID=" + id + ";partyName=%s;numPassengers=%s;dest=%s",pname,pcount,pdest);
 			response = contact_server(url);
 		} catch(Exception e){
 			System.out.println("Exception "+ e.getMessage());
@@ -263,7 +290,7 @@ public class Register extends Activity implements OnClickListener{
 		//Parse the received xml to see if the registration was successful or not.	
 		List<StationInfo> result = null;
 		try {
-			result = XmlUtils.parsexml(response);
+			result = XmlUtils.parseStationInfos(response);
 		} catch (XmlPullParserException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -315,7 +342,7 @@ public class Register extends Activity implements OnClickListener{
 	{
 		String url,response=null,status;
 		try{
-			url = String.format("http://192.168.1.78:8080/RegisterStation?id=12345;name=Alameda;lat=53.123456;lon=22.1234567;ip=127.0.0.1;port=4001");
+			url = String.format(getServerAddress() + "/RegisterStation?id=" + id + ";name=" + stationName + ";lat=" + lat + ";lon=" + lon + ";ip=" + stationIP + ";port=" + port);
 			response = contact_server(url);
 		} catch(Exception e){
 			System.out.println("Exception "+ e.getMessage());

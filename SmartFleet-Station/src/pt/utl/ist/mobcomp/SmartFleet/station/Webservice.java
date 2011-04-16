@@ -8,14 +8,10 @@ import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.util.Enumeration;
 
 import android.os.Handler;
 import android.util.Log;
-import android.widget.TextView;
-
-
 
 public class Webservice implements Runnable {
 
