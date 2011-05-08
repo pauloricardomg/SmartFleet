@@ -260,9 +260,9 @@ def arrivedAtStation(input):
 		port = int(station.port)
 
 		print "Sending message to " + host + ":" + str(port) + ": " + msg
-		#s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		#s.connect((host, port))
-		#s.send(msg)
+		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		s.connect((host, port))
+		s.send(msg)
 	else:
 		print "No parties on this station fit in this car."
 
