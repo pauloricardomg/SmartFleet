@@ -1,0 +1,5 @@
+$def with (code)
+<?xml version="1.0"?>
+<Simple-Response>
+	<Status>$code</Status>
+</Simple-Response>

@@ -1,0 +1,19 @@
+$def with (stations)
+$code:
+    def size(s):
+            return len(s)
+<?xml version="1.0"?>
+<StationInfo>
+	$for entry in stations:
+	<Station>
+		<id>$entry.id</id>
+		<name>$entry.name</name>
+		<lat>$entry.lat</lat>
+		<lon>$entry.lon</lon>
+		<ip>$entry.ip</ip>
+		<port>$entry.port</port>
+		<queueSize>$entry.peopleWaiting()</queueSize>
+		<waitTime>$entry.avgWait</waitTime>
+		<vehicles>$size(entry.vehicles)</vehicles>
+	</Station>
+</StationInfo>
