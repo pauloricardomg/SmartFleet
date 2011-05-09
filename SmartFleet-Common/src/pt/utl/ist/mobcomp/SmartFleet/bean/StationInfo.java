@@ -1,11 +1,16 @@
 package pt.utl.ist.mobcomp.SmartFleet.bean;
 
-public class StationInfo {
+import java.io.Serializable;
+
+import android.location.Location;
+import android.location.LocationManager;
+
+public class StationInfo implements Serializable {
 
 	private String id;
 	private String name;
-	private String lat;
-	private String lon;
+	private String lat = null;
+	private String lon = null;
 	private String ip;
 	private int port;
 	private int queueSize;
@@ -66,6 +71,17 @@ public class StationInfo {
 	public void setVehicles(int vehicles) {
 		this.vehicles = vehicles;
 	}
+	
+	public Location getLocation(){
+		if(lat != null && lon != null){
+			Location location = new Location(LocationManager.GPS_PROVIDER);
+			location.setLatitude(new Double(this.lat));
+			location.setLongitude(new Double(this.lon));
+			return location;
+		}
+		return null;
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;

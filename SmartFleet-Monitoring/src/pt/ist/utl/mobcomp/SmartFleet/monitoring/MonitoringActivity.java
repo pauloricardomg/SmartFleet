@@ -93,7 +93,7 @@ public class MonitoringActivity extends MapActivity {
 		return new Runnable() {
 			public void run() {
 				while (!Thread.interrupted()) {
-					List<StationInfo> activeStations = LookupUtils.lookupStations("http://" + ip + ":" + port + "/GetAllStations");
+					List<StationInfo> activeStations = LookupUtils.lookupStations("http://" + ip + ":" + port);
 					
 					if(activeStations != null && !activeStations.equals(currentStations)){
 						currentStations = activeStations;

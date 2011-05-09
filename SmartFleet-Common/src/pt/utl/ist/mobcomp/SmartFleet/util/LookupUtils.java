@@ -14,12 +14,12 @@ import pt.utl.ist.mobcomp.SmartFleet.bean.VehicleInfo;
 
 public class LookupUtils {
 
-	public static List<StationInfo> lookupStations(String url)
+	public static List<StationInfo> lookupStations(String serverAddress)
 	{
 
 		String response = null;
 		try {
-			response = HTTPClient.executeHttpGet(url);
+			response = HTTPClient.executeHttpGet(serverAddress + "/GetAllStations");
 		} catch (Exception e) {
 			e.printStackTrace();
 			return null;

@@ -130,7 +130,7 @@ public class Register extends Activity implements OnClickListener{
 		return new Runnable() {
 			public void run() {
 				while (!Thread.interrupted()) {
-					activeStations = lookupStations(getServerAddress() + "/GetAllStations");
+					activeStations = LookupUtils.lookupStations(getServerAddress());
 					if (activeStations!=null){
 						runOnUiThread(new Runnable() {
 							@Override
@@ -273,34 +273,6 @@ public class Register extends Activity implements OnClickListener{
 		return value;
 
 	}
-
-
-	private List<StationInfo> lookupStations(String url)
-	{
-
-		//Make a get Request to the server
-		String response = null;
-		try {
-			response = HTTPClient.executeHttpGet(url);
-		} catch (Exception e) {
-			e.printStackTrace();
-			return null;
-		}
-
-		//Parse the received xml to see if the registration was successful or not.	
-		List<StationInfo> result = null;
-		try {
-			result = XmlUtils.parseStationInfos(response);
-		} catch (XmlPullParserException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		return result;
-	}
-
-
 
 	private String contact_server(String url)
 	{
