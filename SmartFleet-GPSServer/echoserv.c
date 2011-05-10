@@ -102,10 +102,13 @@ int main(int argc, char *argv[]) {
 	/*  Retrieve an input line from the connected socket
 	    then simply write it back to the same socket.     */
 	
+	int resp;
 	do {
-		Readline(conn_s, buffer, MAX_LINE-1);
-		printf("%s",buffer);
-	} while (buffer != "exit");
+		resp = Readline(conn_s, buffer, MAX_LINE-1);
+		if(resp != 0){
+			printf("%s",buffer);
+		}
+	} while (resp != 0);
 	
 	/* Writeline(conn_s, buffer, strlen(buffer)); */
 

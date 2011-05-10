@@ -13,3 +13,6 @@
 
 # generated GUI files
 *R.java
+
+# c .o files
+*.o

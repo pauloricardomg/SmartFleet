@@ -17,6 +17,8 @@ urls = (
 	'/RegisterVehicle', 'RegisterVehicle',
 	# http://serverIP:9090/MoveTo?vehicleID=vehicle001;lat=52.123453;lon=33.221234 METHOD: GET (Response: SimpleResponse.xml)
 	'/MoveTo', 'MoveTo',
+	# http://serverIP:9090/MoveTo?vehicleID=vehicle001;lat=52.123453;lon=33.221234 METHOD: GET (Response: SimpleResponse.xml)
+	'/ChangeAltitude', 'ChangeAltitude'
 )
 
 app = web.application(urls, globals())
@@ -30,6 +32,13 @@ class MoveTo:
     def GET(self): # it is GET just for testing from the browser, change it later to POST
 	result = moveTo(web.input())
         return render.SimpleResponse(result)
+
+class ChangeAltitude:
+    def GET(self): # it is GET just for testing from the browser, change it later to POST
+	result = changeAltitude(web.input())
+        return render.SimpleResponse(result)
+
+
 
 web.webapi.internalerror = web.debugerror
 if __name__ == '__main__': app.run()
@@ -47,9 +56,13 @@ class Vehicle:
 		    self.id = id
 		    self.lat = lat
 		    self.lon = lon
+		    self.alt = 0
 		    self.ip = ip
 		    self.port = port
 		    self.emulatorPort = emulatorPort
+		    self.inRange = []
+		    self.close = []
+		    self.moving = 0
 
 	def __eq__(self, other):
 		if(other == None):
@@ -102,15 +115,31 @@ def moveTo(input):
 
 	return 1
 
+def changeAltitude(input):
+	vehicleID = input.vehicleID
+	alt = float(input.alt)
+
+	print "Vehicle " + vehicleID + " will now change altitude to:"  + input.alt + " ."
+
+	vehicle = vehicles.get(vehicleID)
+	if(vehicle == None):
+		print "Vehicle " + input.stationID + " not found. Rejecting request."
+		return 0
+
+	vehicle.alt = alt
+	return 1
+
+
+
 def move(vehicle, lat, lon):
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	s.connect(("localhost", vehicle.emulatorPort))
+	s.connect((vehicle.ip, vehicle.emulatorPort))
 	
 	print "Successfully connected to emulator of vehicle " + vehicle.id + " on port: " + str(vehicle.emulatorPort)
-
 	oldLat = None
 	oldLon = None
-	while(vehicle.lat != lat and vehicle.lon != lon):
+	vehicle.moving = 1
+	while(vehicle.moving and vehicle.lat != lat and vehicle.lon != lon):
 		brng = rhumbBearingTo(vehicle.lat, vehicle.lon, lat, lon)
 		newPos = rhumbDestinationPoint(vehicle.lat, vehicle.lon, brng, 0.01) # 10 meters per second
 		
@@ -130,9 +159,42 @@ def move(vehicle, lat, lon):
 
 		print "Sending geo fix " + str(vehicle.lon) + " " + str(vehicle.lat) + " of vehicle " + vehicle.id + " to port " + str(vehicle.emulatorPort)
 		s.send("geo fix " + str(vehicle.lon) + " " + str(vehicle.lat) + "\n")
+
 		time.sleep(1)
 
+		for other in vehicles.values():
+			if(other.id != vehicle.id and other.moving):
+				d = distanceBetweenPoints(vehicle.lat, vehicle.lon, vehicle.alt, other.lat, other.lon, other.alt)
+				#print("distance between " + vehicle.id + " and " + other.id + ": " + str(d)) 
+				
+				inRange = (other.id in vehicle.inRange)
+				close = (other.id in vehicle.close)
 	
+				if(d >= 0.3):
+					if(inRange):
+						print "Distance between vehicles " + vehicle.id + " and " + other.id + " is higher than 300m. D=" + str(d) + "."
+						vehicle.inRange.remove(other.id)
+						sendMessage(vehicle,"outrange;"+other.id)
+					if(close):
+						print "Distance between vehicles " + vehicle.id + " and " + other.id + " is higher than 200m. D=" + str(d) + "."
+						vehicle.close.remove(other.id)
+				else:
+					if(not inRange):
+						print "Distance between vehicles " + vehicle.id + " and " + other.id + " is lower than 300m. D=" + str(d) + "."
+						vehicle.inRange.append(other.id)
+						sendMessage(vehicle,"inrange;"+other.id+";"+other.ip+";"+str(other.port))
+					if(d >= 0.2):
+						if(close):
+							print "Distance between vehicles " + vehicle.id + " and " + other.id + " is higher than 200m and lower than 300m. D=" + str(d) + "."
+							vehicle.close.remove(other.id)
+					else:
+						if(not close):
+							print "Distance between vehicles " + vehicle.id + " and " + other.id + " is lower than 200m. D=" + str(d) + "."
+							vehicle.close.append(other.id)
+							sendMessage(vehicle,"warn;"+other.id)
+
+
+	vehicle.moving = 0
 	print "Vehicle " + vehicle.id + " finished moving to  lat:"  + str(lat) + ", lon:" + str(lon) + " . Closing connection."
 
 	s.close()
@@ -140,34 +202,47 @@ def move(vehicle, lat, lon):
 earthRadius = 6367.0 # km
 
 
+def sendMessage(vehicle, msg):
+	host = vehicle.ip
+	port = vehicle.port
+	print "Sending message to vehicle " + vehicle.id + " on host " + vehicle.ip + ":" + str(port) + ": " + msg
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	s.connect((host, port))
+	s.send(msg)
+	s.close()
 
-# Returns the distance from this point to the supplied point, in km, travelling along a rhumb line
-#   see http://williams.best.vwh.net/avform.htm#Rhumb
-# @param   {LatLon} point: Latitude/longitude of destination point
-# @returns {Number} Distance in km between this point and destination point
-def rhumbDistanceTo(lat, lon, olat, olon):
-    R = earthRadius
-    lat1 = radians(lat)
-    lat2 = radians(olat)
-    dLat = radians(olat-lat)
-    dLon = radians(olon-lon)
-  
-    dPhi = log(tan(lat2/2+pi/4)/tan(lat1/2+pi/4))
-    if(not isnan(dLat/dPhi)):
-	    q = dLat/dPhi 
-    else: 
-	    q = cos(lat1)  # E-W line gives dPhi=0
 
-    # if dLon over 180dg take shorter rhumb across 180dg meridian:
-    if (dLon > pi):
-        dLon = 2*pi - dLon;
-  
-    dist = sqrt(dLat*dLat + q*q*dLon*dLon) * R; 
- 
-    print "dist: " + str(dist)
- 
-    return dist;  #4 sig figs reflects typical 0.3% accuracy of spherical model
+def distanceBetweenPoints(lat1, lon1, alt1, lat2, lon2, alt2):
+	cart1 = getCartesianCoordinates(lat1, lon1, alt1)
+	cart2 = getCartesianCoordinates(lat2, lon2, alt2)
 
+	#print "Point 1: " + str(lat1) + ":" + str(lon1) + ":" + str(alt1)
+	#print "Cartesian Point 1: X=" + str(cart1[0]) + "; Y=" + str(cart1[1]) + "; Z=" + str(cart1[2])
+	
+	#print "Point 1: " + str(lat2) + ":" + str(lon2) + ":" + str(alt2)
+	#print "Cartesian Point 1: X=" + str(cart2[0]) + "; Y=" + str(cart2[1]) + "; Z=" + str(cart2[2])
+
+	d = sqrt((cart1[0] - cart2[0])**2 + (cart1[1] - cart2[1])**2 + (cart1[2] - cart2[2])**2)
+
+	#print "Result is: " + str(d)
+	return d
+
+
+def getCartesianCoordinates(lat, lon, alt):
+	rLat = radians(lat)
+	rLon = radians(lon)
+	h = alt/1000.0 #converting meters to km
+
+	R = earthRadius
+	f = 1.0/298.257224
+	C = 1.0/sqrt( cos(rLat)**2 + (1-f)**2 * sin(rLat)**2 )
+	S = (1-f)**2 * C
+
+	x = (R*C+h)*cos(rLat)*cos(rLon)
+	y = (R*C+h)*cos(rLat)*sin(rLon)
+	z = (R*S+h)*sin(rLat)
+
+	return (x, y, z)
 
 # Returns the bearing from this point to the supplied point along a rhumb line, in degrees
 # @param   {LatLon} point: Latitude/longitude of destination point
@@ -221,5 +296,3 @@ def rhumbDestinationPoint(lat, lon, brng, dist):
     lon2 = (lon1+dLon+3*pi)%(2*pi) - pi;
  
     return (degrees(lat2), degrees(lon2))
-
-
