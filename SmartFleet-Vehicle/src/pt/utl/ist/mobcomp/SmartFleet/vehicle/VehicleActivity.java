@@ -39,6 +39,7 @@ public class VehicleActivity extends Activity implements LocationListener{
 	String gpsPort;
 	String emulatorPort;
 	String capacity;
+	Integer alt;
 	LocationManager locationManager;
 	List<StationInfo> activeStations;
 	boolean atStation;
@@ -60,6 +61,7 @@ public class VehicleActivity extends Activity implements LocationListener{
 		myIp = prop.getProperty("vehicle_ip");
 		myPort = prop.getProperty("vehicle_port");
         atStation = false;
+        alt = 0;
 		
         show = (TextView) this.findViewById(R.id.show);
         
@@ -120,7 +122,7 @@ public class VehicleActivity extends Activity implements LocationListener{
 		//	nextDest = selectNextDest()
 			//  Action: display next stop on screenppppp0poooooooooooooooooooo9
 		//	sleep(1min) // Each stop takes a total time of 1 minute
-		//	server.leftStation(blablabla)
+		//	this.alt = server.leftStation(blablabla) //TODO: altitude is updated here
 		//	gpsEmulator.moveTo(vehicleId, nextDest)	
 	}
     
