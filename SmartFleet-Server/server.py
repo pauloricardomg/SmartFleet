@@ -13,7 +13,7 @@ render = web.template.render('templates/', cache=False)
 urls = (
 	# http://serverIP:8080/RegisterVehicle?id=vehicle001;capacity=5;lat=42.438917;lon=42.438917 METHOD: GET (Response: SimpleResponse.xml)
 	'/RegisterVehicle', 'RegisterVehicle',
-	# http://serverIP:8080/RegisterParty?stationID=12345;partyName=EMDC;numPassengers=4;dest=4567 METHOD: GET (Response: SimpleResponse.xml)
+	# http://serverIP:8080/RegisterParty?stationID=12345;partyName=EMDC;numPassengers=4;dest=4567;destLat=32.321234;destLon=33.123456 METHOD: GET (Response: SimpleResponse.xml)
 	'/RegisterParty', 'RegisterParty',
 	# http://serverIP:8080/RegisterStation?id=12345;name=Alameda;lat=53.123456;lon=22.1234567;ip=127.0.0.1;port=4001 METHOD: GET (Response: SimpleResponse.xml)
 	'/RegisterStation', 'RegisterStation',
@@ -87,11 +87,13 @@ class Vehicle:
 
 class Party:
 
-	def __init__(self, name, numPassengers, dest):
+	def __init__(self, name, numPassengers, dest, lat, lon):
 		    self.name = name
 		    self.numPassengers = numPassengers
 		    self.dest = dest
 		    self.arrival = int(time.time())
+		    self.destLat = lat
+		    self.destLon = lon
 
 	def __eq__(self, other):
 		if(other == None):
@@ -196,6 +198,8 @@ def registerParty(input):
 	partyName = input.partyName
 	numPassengers = input.numPassengers
 	destination = input.dest
+	destLat = input.destLat
+	destLon = input.destLon
 	
 	# Retrieve station
 	station = activeStations.get(stationID)
@@ -204,13 +208,13 @@ def registerParty(input):
 		return 0
 
 	# Verify is party is already in station queue
-	thisParty = Party(partyName, numPassengers, destination)
+	thisParty = Party(partyName, numPassengers, destination, destLat, destLon)
 	if(thisParty in station.queue):
 		print "Party " + partyName + " already registered. Rejecting request."
 		return 0
 
 	# Add party to station queue
-	print "Registering party " + partyName + ". Passengers: " + numPassengers + ". Destination: " + destination 
+	print "Registering party " + partyName + ". Passengers: " + numPassengers + ". Destination: " + destination + ". Lat: " + destLat + ". Lon: " + destLon 
 	station.queue.append(thisParty)
 	print "Station " + stationID + " queue: " + str(station.queue)
 
