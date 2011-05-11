@@ -88,32 +88,36 @@ public class HTTPClient {
      * @throws Exception
      */
     public static String executeHttpGet(String url) throws Exception {
+    	url = url.replaceAll(" ", "+");
         BufferedReader in = null;
-        try {
-            HttpClient client = getHttpClient();
-            HttpGet request = new HttpGet();
-            request.setURI(new URI(url));
-            HttpResponse response = client.execute(request);
-            in = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+        String result = "";
+        while(result.equals("")){
+            try {
+                HttpClient client = getHttpClient();
+                HttpGet request = new HttpGet();
+                request.setURI(new URI(url));
+                HttpResponse response = client.execute(request);
+                in = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
 
-            StringBuffer sb = new StringBuffer("");
-            String line = "";
-            String NL = System.getProperty("line.separator");
-            while ((line = in.readLine()) != null) {
-                sb.append(line + NL);
-            }
-            in.close();
+                StringBuffer sb = new StringBuffer("");
+                String line = "";
+                String NL = System.getProperty("line.separator");
+                while ((line = in.readLine()) != null) {
+                    sb.append(line + NL);
+                }
+                in.close();
 
-            String result = sb.toString();
-            return result;
-        } finally {
-            if (in != null) {
-                try {
-                    in.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
+                result = sb.toString();
+            } finally {
+                if (in != null) {
+                    try {
+                        in.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }
+        return result;
     }
 }
