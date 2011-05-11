@@ -21,8 +21,11 @@ urls = (
 	'/GetAllStations', 'GetAllStations',
 	# http://serverIP:8080/GetAllVehicles METHOD: GET (Response: StationInfo.xml)
 	'/GetAllVehicles', 'GetAllVehicles',
-	# http://serverIP:8080/ArrivedAtStation?vehicleID=vehicle001;stationID=12345;freeSeats=3 METHOD: GET (Response: PartyInfo.xml)
-	'/ArrivedAtStation', 'ArrivedAtStation'
+	# http://serverIP:8080/ArrivedAtStation?vehicleID=vehicle001;stationID=12345;freeSeats=3;(parties=p1,p2,p3);ts=1305149006317 METHOD: GET (Response: PartyInfo.xml)
+	'/ArrivedAtStation', 'ArrivedAtStation',
+	# http://serverIP:8080/LeaveStation?vehicleID=vehicle001;stationID=12345;dest=dest;ts=1305149006317 METHOD: GET (Response: SimpleResponse.xml)
+	'/LeaveStation', 'LeaveStation'
+
 )
 
 app = web.application(urls, globals())
@@ -50,14 +53,15 @@ class GetAllVehicles:
     def GET(self): # it is GET just for testing from the browser, change it later to POST
         return render.VehicleInfo(getAllVehicles())
 
-
 class ArrivedAtStation:
     def GET(self): # it is GET just for testing from the browser, change it later to POST
 	result = arrivedAtStation(web.input())
         return render.PartyInfo(result)
 
-
-
+class LeaveStation:
+    def GET(self): # it is GET just for testing from the browser, change it later to POST
+	result = leaveStation(web.input())
+        return render.SimpleResponse(result)
 
 web.webapi.internalerror = web.debugerror
 if __name__ == '__main__': app.run()
@@ -78,6 +82,11 @@ class Vehicle:
 		    self.battLevel = 0
 		    self.lat = lat
 		    self.lon = lon
+		    self.alt = 0
+		    self.dest = None 
+		    self.parties = []
+		    self.ts = 0
+		    
 
 	def __eq__(self, other):
 		if(other == None):
@@ -142,6 +151,8 @@ class Station:
 activeStations = {}
 
 activeVehicles = {}
+
+altitudes = {}
 
 # Server interface
 
@@ -224,8 +235,13 @@ def arrivedAtStation(input):
 	vehicleID = input.vehicleID
 	stationID = input.stationID
 	freeSeats = int(input.freeSeats)
+	ts = input.ts
+	print "Vehicle " + vehicleID + " arrived at station " + stationID + " with " + str(freeSeats) + " free seats. TS=" + ts
 
-	print "Vehicle " + vehicleID + " arrived at station " + stationID + " with " + str(freeSeats) + " free seats."
+
+	if(vehicleID in altitudes):
+		print "Removing vehicle from altitudes list"
+		del altitudes[vehicleID]
 
 	station = activeStations.get(stationID)
 	if(station == None):
@@ -237,9 +253,20 @@ def arrivedAtStation(input):
 		print "Vehicle " + input.stationID + " not found. Rejecting request."
 		return []
 
-	station.vehicles.append(vehicleID)
+	if(hasattr(input,"parties")):
+			stillInVehicle = input.parties.split(",")
+			print "Parties " + str(stillInVehicle) + " still on vehicle."
+			for party in vehicle.parties[:]:
+				if(not party.name in stillInVehicle):
+					print "Party " + party.name + " is no longer in vehicle."
+					vehicle.parties.remove(party)
+	else:
+		print "No parties currently in the car, cleaning party list"
+		vehicle.parties = []
+
 	vehicle.lat = station.lat
 	vehicle.lon = station.lon
+	vehicle.ts = ts
 
 	boardingParties = []
 
@@ -248,6 +275,7 @@ def arrivedAtStation(input):
 		if(freeSeats >= passengers):
 			freeSeats -= passengers
 			print "Boarding party " + party.name + " on vehicle " + vehicleID + ". Left seats: " + str(freeSeats)
+			vehicle.parties.append(party)
 			boardingParties.append(party)
 			if(freeSeats == 0):
 				break
@@ -272,3 +300,45 @@ def arrivedAtStation(input):
 		print "No parties on this station fit in this car."
 
 	return boardingParties
+
+
+def leaveStation(input):
+	vehicleID = input.vehicleID
+	stationID = input.stationID
+	dest = input.dest
+	ts = input.ts
+	print "Vehicle " + vehicleID + " left  station " + stationID + " to destination " + dest + ". TS=" + ts
+
+	station = activeStations.get(stationID)
+	if(station == None):
+		print "Station " + input.stationID + " not found. Rejecting request."
+		return -1
+
+	vehicle = activeVehicles.get(vehicleID)
+	if(vehicle == None):
+		print "Vehicle " + input.stationID + " not found. Rejecting request."
+		return -1
+
+	vehicle.ts = ts
+	vehicle.dest = dest
+		
+	host = station.ip
+	port = int(station.port)
+
+	selectedAlt = 100
+	while(selectedAlt in altitudes.values() and selectedAlt < 200): #max altitude
+		selectedAlt += 100
+	
+	print "Selected altitude for vehicle " + vehicleID + " is " + str(selectedAlt)
+	vehicle.alt = selectedAlt
+	altitudes[vehicleID] = selectedAlt
+
+	#TODO: dont know if thats needed
+	#msg = "left"
+	#print "Sending message to " + host + ":" + str(port) + ": " + msg
+	#s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	#s.connect((host, port))
+	#s.send(msg)
+	#s.close()
+
+	return selectedAlt
