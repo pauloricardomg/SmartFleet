@@ -6,5 +6,7 @@ $def with (parties)
 		<name>$entry.name</name>
 		<passengers>$entry.numPassengers</passengers>
 		<destination>$entry.dest</destination>
+		<lat>$entry.destLat</lat>
+		<lon>$entry.destLon</lon>
 	</Party>
 </PartyInfo>
