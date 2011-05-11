@@ -42,7 +42,7 @@ android:layout_gravity="center_horizontal"
 <EditText
 android:id="@+id/count"
 android:layout_width="319px"
-android:layout_height="61px"
+android:layout_height="50px"
 android:textSize="18sp"
 android:layout_gravity="center_horizontal"
 >
@@ -56,7 +56,11 @@ android:textStyle="bold"
 android:layout_gravity="center_horizontal"
 >
 </TextView>
-<Spinner android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/dest"></Spinner>
+<EditText 
+android:id="@+id/dest"
+android:layout_width="319px"
+android:layout_height="61px">
+</EditText>
 <Button
 android:id="@+id/done"
 android:layout_width="117px"

@@ -1,43 +1,46 @@
 package pt.utl.ist.mobcomp.SmartFleet.station;
-import pt.utl.ist.mobcomp.SmartFleet.bean.StationInfo;
-import pt.utl.ist.mobcomp.SmartFleet.util.HTTPClient;
-import pt.utl.ist.mobcomp.SmartFleet.util.LookupUtils;
-import pt.utl.ist.mobcomp.SmartFleet.util.XmlUtils;
-
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
-import java.util.StringTokenizer;
 
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
+import pt.utl.ist.mobcomp.SmartFleet.util.HTTPClient;
+import pt.utl.ist.mobcomp.SmartFleet.util.LookupUtils;
 import android.app.Activity;
 import android.content.Intent;
+import android.location.Address;
+import android.location.Geocoder;
+import android.location.Location;
+import android.location.LocationManager;
 import android.os.Bundle;
-import android.os.Handler;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Spinner;
 import android.widget.TextView;
+
+import com.google.android.maps.GeoPoint;
 
 public class Register extends Activity implements OnClickListener{
 
 
 	String pname, pcount, pdest;
 	EditText name;
-	Spinner dest;
+	EditText dest;
 	EditText count;
 	TextView show;
 	TextView server_thread;
@@ -45,9 +48,9 @@ public class Register extends Activity implements OnClickListener{
 	Thread st, thrd;
 	Webservice service;
 	InfoSocket info; 
-	List<StationInfo> activeStations;
+	//List<StationInfo> activeStations;
 	private static final long STATIONS_QUERY_TIME = 10000L;
-	ArrayAdapter<String> adapter;
+	//ArrayAdapter<String> adapter;
 	
 	String id;
 	String stationName;
@@ -66,7 +69,7 @@ public class Register extends Activity implements OnClickListener{
 		setContentView(R.layout.main);
 
 		name = (EditText) this.findViewById(R.id.name);
-		dest = (Spinner) this.findViewById(R.id.dest);
+		dest = (EditText) this.findViewById(R.id.dest);
 		count = (EditText) this.findViewById(R.id.count);
 		show = (TextView) this.findViewById(R.id.show);
 		server_thread = (TextView) this.findViewById(R.id.server_thread);
@@ -83,12 +86,6 @@ public class Register extends Activity implements OnClickListener{
 		port = prop.getProperty("port");
 		serverIP = prop.getProperty("server_ip");
 		serverPort = prop.getProperty("server_port");
-		
-		//Set the spinner in the beginning
-		adapter = new ArrayAdapter<String>(this,
-				android.R.layout.simple_spinner_item);
-		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-		dest.setAdapter(adapter);
 		
 		//try to register station 
 		register_station();
@@ -112,59 +109,16 @@ public class Register extends Activity implements OnClickListener{
 		service = new Webservice(this);
 		st = new Thread(service);
 		st.start();
-
-		//Start a thread that constantly polls for new stations
-		if(thrd == null){
-			thrd = new Thread(getDestination());
-			thrd.start();
-		}
-
+		
 		System.out.println("ONRESUME");
 
 	}
 
-	
-	
-	private Runnable getDestination(){
 
-		return new Runnable() {
-			public void run() {
-				while (!Thread.interrupted()) {
-					activeStations = LookupUtils.lookupStations(getServerAddress());
-					if (activeStations!=null){
-						runOnUiThread(new Runnable() {
-							@Override
-							public void run() {
-								List<String> destination = getStationList(activeStations);
-								adapter.clear();
-								for (int i=0;i<destination.size();i++) {
-
-										adapter.add(destination.get(i));
-									}
-							}
-						});
-						
-					}
-					try {
-						Thread.sleep(STATIONS_QUERY_TIME);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
-			}
-
-
-		};
-	}
 	
 	
 	private String getServerAddress() {
 		return "http://" + serverIP + ":" + serverPort;
-	}
-	
-	public void updateSpinner(){
-
-		adapter.notifyDataSetChanged();
 	}
 
 	public void onPause(){
@@ -204,14 +158,31 @@ public class Register extends Activity implements OnClickListener{
 		
 		pname = name.getText().toString();
 		pcount = count.getText().toString();
-		pdest = dest.getSelectedItem().toString();
+		pdest = dest.getText().toString();
 
+		Double lat = 0.0;
+		Double lon = 0.0;
+		
+//		Address location = getLocation(pdest);
+//		if(location != null){
+//			lat = location.getLatitude();
+//			lon = location.getLongitude();
+//		}
+		
+		JSONObject locationInfo = getLocationInfo(pdest);
+		if(locationInfo != null){
+			Location loc = getLocation(locationInfo);
+			lat = loc.getLatitude();
+			lon = loc.getLongitude();
+		}
+		
 		//Try to register party.
 		String url,response=null,status;
 		try{
-			url = String.format(getServerAddress() + "/RegisterParty?stationID=" + id + ";partyName=%s;numPassengers=%s;dest=%s",pname,pcount,pdest);
+			url = String.format(getServerAddress() + "/RegisterParty?stationID=" + id + ";partyName=%s;numPassengers=%s;dest=%s;destLat=%s;destLon=%s",pname,pcount,pdest,lat.toString(),lon.toString());
 			response = contact_server(url);
 		} catch(Exception e){
+			show.setText("Exception: " + e.getMessage());
 			System.out.println("Exception "+ e.getMessage());
 		}
 		status = validate(response);
@@ -221,22 +192,24 @@ public class Register extends Activity implements OnClickListener{
 		else if (status == "FAIL")
 			show.setText("Party already registered!");
 		else
-			show.setText("Request timed out, Please re-submit!!");
+			show.setText("Server could not be contacted, Please re-submit!!");
 
+	}
+	
+	public Address getLocation(String dest){
+        Geocoder geoCoder = new Geocoder(this);    
+        try {
+            List<Address> addresses = geoCoder.getFromLocationName(dest, 1);
+            if (addresses.size() > 0) {
+            	return addresses.get(0);
+            }  
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
 	}
 
 
-	private List<String> getStationList(List<StationInfo> infos){
-		List<String> list = new LinkedList<String>();
-
-		if(infos != null){
-			for (StationInfo info : infos) {
-				list.add(info.getName());
-			}
-		}
-
-		return list;
-	}
 
 	//Parse a given xml	
 	private String parsexml (String response)
@@ -274,27 +247,18 @@ public class Register extends Activity implements OnClickListener{
 
 	}
 
-	private String contact_server(String url)
+	private String contact_server(String url) throws Exception
 	{
 
 		//Make a get Request to the server
-		String response = null;
-		try {
-			response = HTTPClient.executeHttpGet(url);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		String response = HTTPClient.executeHttpGet(url);
 
-		//Parse the received xml to see if the registration was successful or not.	
-		try {
-			response = parsexml(response);
-		} catch (XmlPullParserException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
+		if(response != null){
+			//Parse the received xml to see if the registration was successful or not.	
+			return parsexml(response);
 		}
-
-		return response;
+		
+		return null;
 	}
 
 	private String validate (String response)
@@ -326,7 +290,7 @@ public class Register extends Activity implements OnClickListener{
 		else if (status == "FAIL")
 			show.setText("Station already registered!");
 		else
-			show.setText("Request timed out!! Please close and relaunch.");
+			show.setText("Server could not be contacted. Please close and relaunch.");
 
 	}
 
@@ -343,5 +307,64 @@ public class Register extends Activity implements OnClickListener{
 		info.setAnn_vehicleID(vid);
 		callForBoarding();
 	}
+	
+	public static JSONObject getLocationInfo(String address) {
 
+		address = address.replaceAll(" ", "+");
+		HttpGet httpGet = new HttpGet("http://maps.google."
+				+ "com/maps/api/geocode/json?address=" + address
+				+ "ka&sensor=false");
+		HttpClient client = new DefaultHttpClient();
+		HttpResponse response;
+		StringBuilder stringBuilder = new StringBuilder();
+
+		try {
+			response = client.execute(httpGet);
+			HttpEntity entity = response.getEntity();
+			InputStream stream = entity.getContent();
+			int b;
+			while ((b = stream.read()) != -1) {
+				stringBuilder.append((char) b);
+			}
+		} catch (ClientProtocolException e) {
+		} catch (IOException e) {
+		}
+
+		JSONObject jsonObject = new JSONObject();
+		try {
+			jsonObject = new JSONObject(stringBuilder.toString());
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return jsonObject;
+	}
+	
+	public static Location getLocation(JSONObject jsonObject) {
+
+		Double lon = new Double(0);
+		Double lat = new Double(0);
+
+		try {
+
+			lon = ((JSONArray)jsonObject.get("results")).getJSONObject(0)
+				.getJSONObject("geometry").getJSONObject("location")
+				.getDouble("lng");
+
+			lat = ((JSONArray)jsonObject.get("results")).getJSONObject(0)
+				.getJSONObject("geometry").getJSONObject("location")
+				.getDouble("lat");
+
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		Location loc = new Location(LocationManager.GPS_PROVIDER);
+		loc.setLatitude(lat);
+		loc.setLongitude(lon);
+		
+		return loc;
+	}
 }
