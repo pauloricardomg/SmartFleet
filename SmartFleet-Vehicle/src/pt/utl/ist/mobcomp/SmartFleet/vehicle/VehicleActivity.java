@@ -14,7 +14,6 @@ import org.xmlpull.v1.XmlPullParserFactory;
 import pt.utl.ist.mobcomp.SmartFleet.bean.StationInfo;
 import pt.utl.ist.mobcomp.SmartFleet.util.HTTPClient;
 import pt.utl.ist.mobcomp.SmartFleet.util.LookupUtils;
-import pt.utl.ist.mobcomp.SmartFleet.vehicle.R;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -27,6 +26,11 @@ import android.widget.TextView;
 public class VehicleActivity extends Activity implements LocationListener{
 
 	TextView show;
+	TextView server_thread;
+	Thread server_socket, client_socket;
+	Webservice service;
+	WebserviceClient service_request;
+	LastSeenVehicleInfo lastSeen;
 	 /** Called when the activity is first created. */
 	
 	String id;
@@ -40,6 +44,11 @@ public class VehicleActivity extends Activity implements LocationListener{
 	String emulatorPort;
 	String capacity;
 	Integer alt;
+	
+	String destination;
+	String passengerList;
+	double battery;
+	
 	LocationManager locationManager;
 	List<StationInfo> activeStations;
 	boolean atStation;
@@ -63,7 +72,8 @@ public class VehicleActivity extends Activity implements LocationListener{
         atStation = false;
         alt = 0;
 		
-        show = (TextView) this.findViewById(R.id.show);
+        show = (TextView) this.findViewById(R.id.server_thread);
+        server_thread = (TextView) this.findViewById(R.id.show);
         
         //Try to register vehicle.
         register_vehicle();
@@ -72,10 +82,16 @@ public class VehicleActivity extends Activity implements LocationListener{
         
 		// Get the location manager
 		locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+		
+		
+		//Start a thread that listens to incoming connections from the server.
+		service = new Webservice(this, locationManager);
+		server_socket = new Thread(service);
+		server_socket.start();
     }
 
 
-    public static StationInfo getStation(Location location, List<StationInfo> activeStations){
+	public static StationInfo getStation(Location location, List<StationInfo> activeStations){
     	
     	for (StationInfo station : activeStations) {
 			Location stationLocation = station.getLocation();
@@ -142,6 +158,16 @@ public class VehicleActivity extends Activity implements LocationListener{
 		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 400, 1, this);
 		
 		// TODO: battery draining loop
+	}
+	
+	public void onDestroy(){
+		super.onDestroy();
+		try{
+			service.closeSocket();
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		System.out.println("ONDESTROY");
 	}
 
 	/* Remove the locationlistener updates when Activity is paused */
@@ -233,6 +259,16 @@ public void showNavigationScreen(Location location){
 	startActivity(intent);
 }
 
+public void updateNewVehiclePos(String vId, Double lat, Double lon)
+{
+	// start intent to call navigation map with whatever values are required
+}
+
+public void stopNewVehicle (String vID)
+{
+	// start intent to call and stop displaying the new vehicle on map
+}
+
 private void register_vehicle(){
 	String url,response=null,status;
 
@@ -286,5 +322,69 @@ public void onStatusChanged(String provider, int status, Bundle extras) {
 	// TODO Auto-generated method stub
 	
 }
+
+/**
+ * @return the alt
+ */
+public Integer getAlt() {
+	return alt;
+}
+
+
+/**
+ * @param alt the alt to set
+ */
+public void setAlt(Integer alt) {
+	this.alt = alt;
+}
+
+
+/**
+ * @return the destination
+ */
+public String getDestination() {
+	return destination;
+}
+
+
+/**
+ * @param destination the destination to set
+ */
+public void setDestination(String destination) {
+	this.destination = destination;
+}
+
+
+/**
+ * @return the battery
+ */
+public double getBattery() {
+	return battery;
+}
+
+
+/**
+ * @param battery the battery to set
+ */
+public void setBattery(double battery) {
+	this.battery = battery;
+}
+
+
+/**
+ * @return the passengerList
+ */
+public String getPassengerList() {
+	return passengerList;
+}
+
+
+/**
+ * @return the id
+ */
+public String getId() {
+	return id;
+}
+
 
 }

@@ -133,7 +133,7 @@ def changeAltitude(input):
 
 def move(vehicle, lat, lon):
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	s.connect((vehicle.ip, vehicle.emulatorPort))
+	s.connect(("localhost", vehicle.emulatorPort))
 	
 	print "Successfully connected to emulator of vehicle " + vehicle.id + " on port: " + str(vehicle.emulatorPort)
 	oldLat = None
@@ -157,7 +157,7 @@ def move(vehicle, lat, lon):
 			oldLon = vehicle.lon
 			vehicle.lon = newPos[1]
 
-		print "Sending geo fix " + str(vehicle.lon) + " " + str(vehicle.lat) + " of vehicle " + vehicle.id + " to port " + str(vehicle.emulatorPort)
+		#print "Sending geo fix " + str(vehicle.lon) + " " + str(vehicle.lat) + " of vehicle " + vehicle.id + " to port " + str(vehicle.emulatorPort)
 		s.send("geo fix " + str(vehicle.lon) + " " + str(vehicle.lat) + "\n")
 
 		time.sleep(1)
@@ -207,7 +207,7 @@ def sendMessage(vehicle, msg):
 	port = vehicle.port
 	print "Sending message to vehicle " + vehicle.id + " on host " + vehicle.ip + ":" + str(port) + ": " + msg
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	s.connect((host, port))
+	s.connect(("localhost", port))
 	s.send(msg)
 	s.close()
 

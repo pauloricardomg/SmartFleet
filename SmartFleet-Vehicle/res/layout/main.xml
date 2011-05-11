@@ -102,5 +102,14 @@ android:gravity="center"
 android:layout_gravity="center_horizontal"
 >
 </TextView>
+
+<TextView
+android:id="@+id/server_thread"
+android:layout_width="314px"
+android:layout_height="54px"
+android:gravity="center"
+android:layout_gravity="center_horizontal"
+>
+</TextView>
 </LinearLayout>
 </AbsoluteLayout>
