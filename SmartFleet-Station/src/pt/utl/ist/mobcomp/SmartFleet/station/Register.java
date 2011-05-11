@@ -33,7 +33,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import com.google.android.maps.GeoPoint;
 
 public class Register extends Activity implements OnClickListener{
 
