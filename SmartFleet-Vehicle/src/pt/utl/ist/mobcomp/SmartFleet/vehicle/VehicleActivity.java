@@ -4,6 +4,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 
@@ -29,6 +31,9 @@ public class VehicleActivity extends Activity implements LocationListener{
 	TextView server_thread;
 	Thread server_socket, client_socket;
 	Webservice service;
+	
+	GossipSender sender;
+	
 	WebserviceClient service_request;
 	LastSeenVehicleInfo lastSeen;
 	 /** Called when the activity is first created. */
@@ -52,6 +57,9 @@ public class VehicleActivity extends Activity implements LocationListener{
 	LocationManager locationManager;
 	List<StationInfo> activeStations;
 	boolean atStation;
+	
+	public static HashMap<String, VehicleInfo> learnedVehicles = new HashMap<String, VehicleInfo>();
+	public static List<String> inRange = new ArrayList<String>();
 	
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -88,6 +96,9 @@ public class VehicleActivity extends Activity implements LocationListener{
 		service = new Webservice(this, locationManager);
 		server_socket = new Thread(service);
 		server_socket.start();
+		
+		sender = new GossipSender(this, locationManager);
+		new Thread(sender).start();
     }
 
 
@@ -164,9 +175,11 @@ public class VehicleActivity extends Activity implements LocationListener{
 		super.onDestroy();
 		try{
 			service.closeSocket();
+			
 		}catch(Exception e){
 			e.printStackTrace();
 		}
+		sender.stop();
 		System.out.println("ONDESTROY");
 	}
 
@@ -331,11 +344,21 @@ public Integer getAlt() {
 }
 
 
-/**
- * @param alt the alt to set
- */
-public void setAlt(Integer alt) {
-	this.alt = alt;
+public void raiseAltitude(){
+	alt += 100;
+	try{
+		String url = String.format("http://" + this.serverIP + ":" + this.gpsPort + "/ChangeAltitude?vehicleID=" + 
+				this.id + ";alt=" +  this.alt);
+		contact_server(url);
+	}catch(Exception e){
+		System.out.println("Exception here: "+ e.getMessage());
+	}
+	//CONSUME BATTERY
+}
+
+public void lowerAltitude(){
+	alt -= 100;
+	//CONSUME BATTERY
 }
 
 
@@ -386,5 +409,14 @@ public String getId() {
 	return id;
 }
 
+
+public HashMap<String, VehicleInfo> getLearnedVehicles() {
+	return learnedVehicles;
+}
+
+
+public List<String> getInRange() {
+	return inRange;
+}
 
 }

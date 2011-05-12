@@ -1,10 +1,10 @@
 package pt.utl.ist.mobcomp.SmartFleet.vehicle;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
 import pt.utl.ist.mobcomp.SmartFleet.bean.StationInfo;
-import pt.utl.ist.mobcomp.SmartFleet.vehicle.R;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
@@ -84,6 +84,7 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 			//}
 		} else {
 			vehiclesOverlay.update(getVehicleItem(location));
+			map.getController().setCenter(getPoint(location));
 			//show.setText("Lat: " + String.valueOf(location.getLatitude()) + "Lon: " + String.valueOf(location.getLongitude()));
 			//still moving
 			// Display current position on map and expected time of arrival during flight	
@@ -202,6 +203,19 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 		list.add(new OverlayItem(getPoint(location), vehicleID,
 				"Vehicle: " + vehicleID + "\n" +
 		"Battery Level: 0"));
+		
+		if(VehicleActivity.inRange.size() > 0){
+			double lat, lon;
+			for (String otherVID : new ArrayList<String>(VehicleActivity.inRange)) {
+				VehicleInfo info = VehicleActivity.learnedVehicles.get(otherVID);
+				if(info.getLat() != null && info.getLon() != null){
+					lat = info.getLat();
+					lon = info.getLon();
+					list.add(new OverlayItem(getPoint(lat, lon), otherVID,
+							"Vehicle: " + otherVID + "\n"));
+				}
+			}
+		}
 	
 		return list;
 	}
