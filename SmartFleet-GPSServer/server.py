@@ -17,7 +17,7 @@ urls = (
 	'/RegisterVehicle', 'RegisterVehicle',
 	# http://serverIP:9090/MoveTo?vehicleID=vehicle001;lat=52.123453;lon=33.221234 METHOD: GET (Response: SimpleResponse.xml)
 	'/MoveTo', 'MoveTo',
-	# http://serverIP:9090/MoveTo?vehicleID=vehicle001;lat=52.123453;lon=33.221234 METHOD: GET (Response: SimpleResponse.xml)
+	# http://serverIP:9090/ChangeAltitude?vehicleID=vehicle001;alt=200 METHOD: GET (Response: SimpleResponse.xml)
 	'/ChangeAltitude', 'ChangeAltitude'
 )
 
