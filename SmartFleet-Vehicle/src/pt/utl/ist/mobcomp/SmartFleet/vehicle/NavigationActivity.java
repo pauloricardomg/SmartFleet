@@ -29,13 +29,17 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 	SmartFleetOverlay stationsOverlay;
 	String vehicleID;
 	String destination;
+	Location currDest;
 
 	private LocationManager locationManager;
+
+	private VehicleManager manager;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.nav);
+		this.manager = VehicleManager.getInstance();
 		
 		// Get the location manager
 		locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
@@ -46,7 +50,13 @@ public class NavigationActivity extends MapActivity implements LocationListener 
         Location position = (Location)extras.get("position");	
         vehicleID = extras.getString("vehicleID");
         destination = extras.getString("destination");
-		
+        double lat = extras.getDouble("lat");
+        double lon = extras.getDouble("lon");
+        
+        currDest = new Location(LocationManager.GPS_PROVIDER);
+        currDest.setLatitude(lat);
+        currDest.setLongitude(lon);
+        	
 		map=(MapView)findViewById(R.id.mapView);
 
 		map.getController().setCenter(getPoint(position));
@@ -97,6 +107,9 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 		} else {
 			vehiclesOverlay.update(getVehicleItem(location));
 			map.getController().setCenter(getPoint(location));
+			
+			float distanceTo = location.distanceTo(currDest);
+			Toast.makeText(NavigationActivity.this, "Distance to location: " + distanceTo + "Km",Toast.LENGTH_LONG);
 			//show.setText("Lat: " + String.valueOf(location.getLatitude()) + "Lon: " + String.valueOf(location.getLongitude()));
 			//still moving
 			// Display current position on map and expected time of arrival during flight	
@@ -216,10 +229,10 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 				"Vehicle: " + vehicleID + "\n" +
 		"Battery Level: 0"));
 		
-		if(VehicleActivity.inRange.size() > 0){
+		if(manager.getInRange().size() > 0){
 			double lat, lon;
-			for (String otherVID : new ArrayList<String>(VehicleActivity.inRange)) {
-				VehicleInfo info = VehicleActivity.learnedVehicles.get(otherVID);
+			for (String otherVID : new ArrayList<String>(manager.getInRange())) {
+				VehicleInfo info = manager.getLearnedVehicles().get(otherVID);
 				if(info.getLat() != null && info.getLon() != null){
 					lat = info.getLat();
 					lon = info.getLon();

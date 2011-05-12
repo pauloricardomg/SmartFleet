@@ -32,10 +32,13 @@ public class Webservice implements Runnable {
 
 	private LocationManager lm;
 	
+	private VehicleManager manager;
+	
 	Webservice(VehicleActivity object,LocationManager lm){
 		vehicleActivity = object;
 		myvID = object.getId();
 		this.lm = lm;
+		this.manager = VehicleManager.getInstance();
 	}
 
 	public void run() {
@@ -73,7 +76,7 @@ public class Webservice implements Runnable {
 						final String otherVehicleID = split[1];
 
 						if (type.compareToIgnoreCase("warn") == 0){
-							VehicleInfo info = vehicleActivity.getLearnedVehicles().get(otherVehicleID);
+							VehicleInfo info = manager.getLearnedVehicles().get(otherVehicleID);
 							if (info != null)
 							{
 								Log.d("RecvWarn", myvID +" "+otherVehicleID);
@@ -91,7 +94,7 @@ public class Webservice implements Runnable {
 								Integer alt = vehicleActivity.getAlt();
 								String dest = vehicleActivity.getDestination();
 								String pList = vehicleActivity.getPassengerList();
-								Double bat = vehicleActivity.getBattery();
+								Double bat = BatteryManager.getInstance().getBatteryLevel();
 								Runnable recvwarn = new WebserviceClient("recvwarn", info.getIpAddress(), info.getPort(), myvID, lat, lon, alt, dest, pList, bat, System.currentTimeMillis());
 								new Thread(recvwarn).start();
 							}
@@ -109,13 +112,13 @@ public class Webservice implements Runnable {
 							String contactIP = split[2];
 							int contactPort = Integer.parseInt(split[3]);
 							
-							VehicleInfo vehicleInfo = vehicleActivity.getLearnedVehicles().get(otherVehicleID);
+							VehicleInfo vehicleInfo = manager.getLearnedVehicles().get(otherVehicleID);
 							if(vehicleInfo == null){
 								vehicleInfo = new VehicleInfo(otherVehicleID, contactIP, contactPort);
-								vehicleActivity.getLearnedVehicles().put(otherVehicleID, vehicleInfo);
+								manager.getLearnedVehicles().put(otherVehicleID, vehicleInfo);
 							}
 							
-							vehicleActivity.getInRange().add(otherVehicleID);
+							manager.getInRange().add(otherVehicleID);
 
 						} else if (type.compareToIgnoreCase("outrange") == 0){
 							// Send info about lat and lon of new vehicle and stop
@@ -125,7 +128,7 @@ public class Webservice implements Runnable {
 									Toast.makeText(vehicleActivity,"Vehicle "+ otherVehicleID+" is out of range.", Toast.LENGTH_LONG).show();		
 								}
 							});
-							vehicleActivity.getInRange().remove(otherVehicleID);	
+							manager.getInRange().remove(otherVehicleID);	
 						} else if (type.compareToIgnoreCase("recvwarn") == 0){
 							//onreceive compare altitude  
 
@@ -151,6 +154,14 @@ public class Webservice implements Runnable {
 							//on receive store
 							//if battery is zero, mark vehicle as missing.
 							updateVehicleInfo(split, otherVehicleID);
+						} else if (type.compareToIgnoreCase("shortcircuit") == 0){
+							BatteryManager.getInstance().drainAll();
+							handler.post(new Runnable() {
+								@Override
+								public void run() {
+									Toast.makeText(vehicleActivity,"Short circuit in the battery! Vehicle is  stopped.", Toast.LENGTH_LONG).show();		
+								}
+							});
 						}
 
 						Log.d("ServerActivityHERE", type);
@@ -185,7 +196,7 @@ public class Webservice implements Runnable {
 	}
 
 	private void updateVehicleInfo(String[] split, String otherVehicleID) {
-		VehicleInfo vehicleInfo = vehicleActivity.getLearnedVehicles().get(otherVehicleID);
+		VehicleInfo vehicleInfo = manager.getLearnedVehicles().get(otherVehicleID);
 		if(vehicleInfo != null){
 			//out.println(type+";"+vID+";"+lat+";"+lon+";"+alt+";"+dest+";"+pList+";"+bat+";"+time);
 			vehicleInfo.setLat(new Double(split[2]));
