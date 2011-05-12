@@ -81,7 +81,7 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 	        
 		} if((parties = getPartiesOfDestination(location)) != null) {
 			//MOVE TO ARRIVED AT DESTINATION ACTIVITY
-			Intent intent = new Intent(this, NavigationActivity.class);
+			Intent intent = new Intent(this, Arrival.class);
 			intent.putExtra("destination",destination);
 			startActivityForResult(intent, 0);
 			

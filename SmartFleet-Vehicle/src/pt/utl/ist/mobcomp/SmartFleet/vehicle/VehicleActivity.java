@@ -548,6 +548,14 @@ public void onStatusChanged(String provider, int status, Bundle extras) {
 }
 
 /**
+ * @param alt the alt to set
+ */
+public void setAlt(Integer alt) {
+	this.alt = alt;
+}
+
+
+/**
  * @return the alt
  */
 public Integer getAlt() {
