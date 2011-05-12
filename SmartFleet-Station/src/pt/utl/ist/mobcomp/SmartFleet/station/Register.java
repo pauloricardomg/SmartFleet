@@ -60,7 +60,8 @@ public class Register extends Activity implements OnClickListener{
 	String serverIP;
 	String serverPort;
 
-
+	Intent intent; 
+	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -75,6 +76,7 @@ public class Register extends Activity implements OnClickListener{
 		done = (Button)this.findViewById(R.id.done);
 		done.setOnClickListener(this);
 		info = new InfoSocket();
+		intent = new Intent(this, Announce.class);
 		
 		Properties prop = LookupUtils.readPropertiesFile(this.getResources().getAssets(), "station.conf");
 		id = prop.getProperty("id");
@@ -90,6 +92,13 @@ public class Register extends Activity implements OnClickListener{
 		register_station();
 
 		System.out.println("ONCREATE");
+		
+		
+		
+		//Start a thread that listens to incoming connections from the server.
+		service = new Webservice(this);
+		st = new Thread(service);
+		st.start();
 
 	}
 
@@ -103,11 +112,6 @@ public class Register extends Activity implements OnClickListener{
 
 	public void onResume(){
 		super.onResume();	
-
-		//Start a thread that listens to incoming connections from the server.
-		service = new Webservice(this);
-		st = new Thread(service);
-		st.start();
 		
 		System.out.println("ONRESUME");
 
@@ -128,7 +132,7 @@ public class Register extends Activity implements OnClickListener{
 		thrd = null;
 	}
 
-	public void onStop(){
+	/*public void onStop(){
 		super.onStop();
 		try{
 			service.closeSocket();
@@ -139,18 +143,20 @@ public class Register extends Activity implements OnClickListener{
 			thrd.interrupt();
 		thrd = null;
 		System.out.println("ONSTOP");
-	}
+	}*/
 
-	/*	public void onDestroy(){
+		public void onDestroy(){
 		super.onDestroy();
-		//st.stop();
 		try{
 		service.closeSocket();
 		}catch(Exception e){
 			e.printStackTrace();
 		}
+		if (thrd != null)
+			thrd.interrupt();
+		thrd = null;
 		System.out.println("ONDESTROY");
-	}*/
+	}
 
 	@Override
 	public void onClick(View v) {
@@ -178,7 +184,7 @@ public class Register extends Activity implements OnClickListener{
 		//Try to register party.
 		String url,response=null,status;
 		try{
-			url = String.format(getServerAddress() + "/RegisterParty?stationID=" + id + ";partyName=%s;numPassengers=%s;dest=%s;destLat=%s;destLon=%s",pname,pcount,pdest,lat.toString(),lon.toString());
+			url = String.format( getServerAddress() + "/RegisterParty?stationID=" + id + ";partyName=%s;numPassengers=%s;dest=%s;destLat=%s;destLon=%s",pname,pcount,pdest,lat.toString(),lon.toString());
 			response = contact_server(url);
 		} catch(Exception e){
 			show.setText("Exception: " + e.getMessage());
@@ -189,7 +195,7 @@ public class Register extends Activity implements OnClickListener{
 		if (status == "SUCCESS")
 			show.setText("Party Registration Success!!");
 		else if (status == "FAIL")
-			show.setText("Party already registered!");
+			show.setText("Party has already registered!");
 		else
 			show.setText("Server could not be contacted, Please re-submit!!");
 
@@ -294,13 +300,19 @@ public class Register extends Activity implements OnClickListener{
 	}
 
 
-	public void callForBoarding(){
-		Intent intent = new Intent(this, Announce.class);
+	public void callForBoarding(){	
 		intent.putExtra("names",info.getAnn_pname());
 		intent.putExtra("vehicleID",info.getAnn_vehicleID());
-		startActivity(intent);
+		startActivityForResult(intent, 0);
+		
+		
 	}
-
+	
+	public void getControlBack()
+	{
+	
+	}
+	
 	public void receiveDetails(String name, String vid){
 		info.setAnn_pname(name);
 		info.setAnn_vehicleID(vid);

@@ -31,16 +31,15 @@ public class Announce extends Activity implements OnClickListener{
             Bundle extras = getIntent().getExtras();
             party_names = extras.getString("names") ;
             vehicleID = extras.getString("vehicleID");
-        
+            
        pnames.setText(party_names);
        vid.setText(vehicleID);
     }
 
     public void onClick(View v) {
-    	Intent intent = new Intent(this, Register.class);
-		startActivity(intent);
+    	Intent intent = new Intent();
+    	setResult(RESULT_OK, intent);
+        finish();
     }
-    
-    
     
 }

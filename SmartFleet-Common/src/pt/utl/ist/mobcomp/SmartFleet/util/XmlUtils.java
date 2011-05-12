@@ -10,6 +10,7 @@ import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
+import pt.utl.ist.mobcomp.SmartFleet.bean.PartyInfo;
 import pt.utl.ist.mobcomp.SmartFleet.bean.StationInfo;
 import pt.utl.ist.mobcomp.SmartFleet.bean.VehicleInfo;
 
@@ -158,6 +159,74 @@ public class XmlUtils {
 		}
 
 	}
+	
+	public static List<PartyInfo> parsePartyInfos(String xmlTest) throws XmlPullParserException, IOException {
+
+		XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+		XmlPullParser xpp = factory.newPullParser();
+		byte[] bytes = xmlTest.getBytes();
+		InputStream xml = new ByteArrayInputStream(bytes);
+		xpp.setInput(xml, null);
+
+		List<PartyInfo> infos = null;
+		
+		PartyInfo currentInfo = null;
+		String attr = null;
+		String name;
+		
+		while (true) {
+			int event = xpp.next();
+			switch(event){
+	
+			case XmlPullParser.START_TAG:
+				name = xpp.getName();
+				
+				if(name.equals("Party")){
+					currentInfo = new PartyInfo();
+					infos.add(currentInfo);
+				} else if(name.equals("PartyInfo")){
+					infos = new LinkedList<PartyInfo>();
+				} else {
+					attr = name;
+				} 
+				break;
+				
+			case XmlPullParser.END_TAG:
+				name = xpp.getName();
+				
+				if(name.equals("Party")){
+					currentInfo = null;
+				} else if(!name.equals("PartyInfo")){
+					attr = null;
+				}
+				break;
+				
+			case XmlPullParser.TEXT:
+				if(currentInfo != null && attr != null){
+					String text = xpp.getText();
+					if(attr.equals("name")){
+						currentInfo.setName(text);
+					} else if(attr.equals("passengers")){
+						int count = new Integer(text);
+						currentInfo.setNoOfPassengers(count);
+					} else if(attr.equals("destination")){
+						currentInfo.setDestination(text);
+					} else if(attr.equals("lat")){
+						currentInfo.setLat(text);
+					} else if(attr.equals("lon")){
+						currentInfo.setLon(text);
+					} 
+				}
+				break;
+				
+			case XmlPullParser.END_DOCUMENT:
+				return infos;
+			
+			}
+		}
+
+	}
+	
 	
 	enum StationTags {
 		ID, NAME, LAT, LON, IP, PORT, QUEUESIZE, WAITTIME, VEHICLES

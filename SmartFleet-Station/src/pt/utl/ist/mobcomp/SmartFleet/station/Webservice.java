@@ -10,6 +10,7 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.Enumeration;
 
+import android.content.Intent;
 import android.os.Handler;
 import android.util.Log;
 
@@ -20,7 +21,7 @@ public class Webservice implements Runnable {
 	private Register displayUI;
 
 	// designate a port
-	public static final int SERVERPORT = 8000;
+	public static final int SERVERPORT = 8010;
 
 	private Handler handler = new Handler();
 
@@ -67,19 +68,29 @@ public class Webservice implements Runnable {
 						while ((line = in.readLine()) != null) {
 							Log.d("ServerActivity", line);
 							System.out.println("Received " + line);
-							final String vehicleID = line.split(";")[0];
-							final String partyNames = line.split(";")[1];
-							handler.post(new Runnable() {
-								@Override
-								public void run() {
-									
-									displayUI.receiveDetails(partyNames, vehicleID);	
-									//displayUI.callForBoarding();
-									
-								}
-							});
+							if (line.compareTo("left")==0)
+							{
+								Log.d("ServerActivity", "HERE");
+								//displayUI.getControlBack();	
+								displayUI.finishActivity(0);
+								 
+							}
+							else
+							{
+								final String vehicleID = line.split(";")[0];
+								final String partyNames = line.split(";")[1];
+								handler.post(new Runnable() {
+									@Override
+									public void run() {
+
+										displayUI.receiveDetails(partyNames, vehicleID);	
+										//displayUI.callForBoarding();
+
+									}
+								});
+							}
 						}
-						break;
+						//break;
 					} catch (Exception e) {
 						handler.post(new Runnable() {
 							@Override

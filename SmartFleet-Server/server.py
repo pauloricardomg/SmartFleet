@@ -334,11 +334,11 @@ def leaveStation(input):
 	altitudes[vehicleID] = selectedAlt
 
 	#TODO: dont know if thats needed
-	#msg = "left"
-	#print "Sending message to " + host + ":" + str(port) + ": " + msg
-	#s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	#s.connect((host, port))
-	#s.send(msg)
-	#s.close()
+	msg = "left"
+	print "Sending message to " + host + ":" + str(port) + ": " + msg
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	s.connect((host, port))
+	s.send(msg)
+	s.close()
 
 	return selectedAlt

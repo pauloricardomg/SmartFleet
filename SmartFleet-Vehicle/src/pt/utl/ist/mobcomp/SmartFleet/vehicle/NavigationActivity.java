@@ -1,11 +1,13 @@
 package pt.utl.ist.mobcomp.SmartFleet.vehicle;
 
+import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
 
 import pt.utl.ist.mobcomp.SmartFleet.bean.StationInfo;
 import pt.utl.ist.mobcomp.SmartFleet.vehicle.R;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationListener;
@@ -27,6 +29,7 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 	SmartFleetOverlay vehiclesOverlay;
 	SmartFleetOverlay stationsOverlay;
 	String vehicleID;
+	String destination;
 
 	private LocationManager locationManager;
 
@@ -43,6 +46,7 @@ public class NavigationActivity extends MapActivity implements LocationListener 
         activeStations = (List<StationInfo>)extras.get("stations");
         Location position = (Location)extras.get("position");	
         vehicleID = extras.getString("vehicleID");
+        destination = extras.getString("destination");
 		
 		map=(MapView)findViewById(R.id.mapView);
 
@@ -72,8 +76,17 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 		List<String> parties;
 		if(VehicleActivity.getStation(location, activeStations) != null){
 			//RESUME VEHICLE ACTIVITY
+			Intent intent = new Intent();
+	    	setResult(RESULT_OK, intent);
+	        finish();
+	        
 		} if((parties = getPartiesOfDestination(location)) != null) {
 			//MOVE TO ARRIVED AT DESTINATION ACTIVITY
+			Intent intent = new Intent(this, NavigationActivity.class);
+			intent.putExtra("destination",destination);
+			startActivityForResult(intent, 0);
+			
+			
 			//  Notify travelers to leave when arriving at destination
 			// drop parties, etc
 			//if(hasEnoughBattery()){
