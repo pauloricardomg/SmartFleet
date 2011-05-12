@@ -1,13 +1,8 @@
 package pt.utl.ist.mobcomp.SmartFleet.vehicle;
 
-import java.util.List;
-
-import pt.utl.ist.mobcomp.SmartFleet.bean.StationInfo;
 import android.app.Activity;
-import android.location.Location;
 import android.os.Bundle;
 import android.widget.EditText;
-import android.widget.TextView;
 
 public class Arrival extends Activity {
 

@@ -18,7 +18,10 @@ urls = (
 	# http://serverIP:9090/MoveTo?vehicleID=vehicle001;lat=52.123453;lon=33.221234 METHOD: GET (Response: SimpleResponse.xml)
 	'/MoveTo', 'MoveTo',
 	# http://serverIP:9090/ChangeAltitude?vehicleID=vehicle001;alt=200 METHOD: GET (Response: SimpleResponse.xml)
-	'/ChangeAltitude', 'ChangeAltitude'
+	'/ChangeAltitude', 'ChangeAltitude',
+	# http://serverIP:9090/StopVehicle?vehicleID=vehicle001;(notify) METHOD: GET (Response: SimpleResponse.xml)
+	'/StopVehicle', 'StopVehicle'
+
 )
 
 app = web.application(urls, globals())
@@ -36,6 +39,11 @@ class MoveTo:
 class ChangeAltitude:
     def GET(self): # it is GET just for testing from the browser, change it later to POST
 	result = changeAltitude(web.input())
+        return render.SimpleResponse(result)
+
+class StopVehicle:
+    def GET(self): # it is GET just for testing from the browser, change it later to POST
+	result = stopVehicle(web.input())
         return render.SimpleResponse(result)
 
 
@@ -63,6 +71,7 @@ class Vehicle:
 		    self.inRange = []
 		    self.close = []
 		    self.moving = 0
+		    self.batt = 0
 
 	def __eq__(self, other):
 		if(other == None):
@@ -73,6 +82,7 @@ class Vehicle:
 # Server data structures
 
 vehicles = {}
+moving = {}
 
 # Server interface
 
@@ -129,6 +139,22 @@ def changeAltitude(input):
 	vehicle.alt = alt
 	return 1
 
+def stopVehicle(input):
+	vehicleID = input.vehicleID
+
+	print "Vehicle " + vehicleID + " will now stop."
+
+	vehicle = vehicles.get(vehicleID)
+	if(vehicle == None):
+		print "Vehicle " + input.stationID + " not found. Rejecting request."
+		return 0
+
+	vehicle.batt = 0
+
+        if(hasattr(input,"notify")):
+		sendMessage(vehicle, "shortcircuit\n")
+
+	return 1
 
 
 def move(vehicle, lat, lon):
@@ -139,7 +165,8 @@ def move(vehicle, lat, lon):
 	oldLat = None
 	oldLon = None
 	vehicle.moving = 1
-	while(vehicle.moving and vehicle.lat != lat and vehicle.lon != lon):
+	vehicle.batt = 1
+	while(vehicle.batt and vehicle.moving and vehicle.lat != lat and vehicle.lon != lon):
 		brng = rhumbBearingTo(vehicle.lat, vehicle.lon, lat, lon)
 		newPos = rhumbDestinationPoint(vehicle.lat, vehicle.lon, brng, 0.01) # 10 meters per second
 		
@@ -157,7 +184,7 @@ def move(vehicle, lat, lon):
 			oldLon = vehicle.lon
 			vehicle.lon = newPos[1]
 
-		#print "Sending geo fix " + str(vehicle.lon) + " " + str(vehicle.lat) + " of vehicle " + vehicle.id + " to port " + str(vehicle.emulatorPort)
+		print "Sending geo fix " + str(vehicle.lon) + " " + str(vehicle.lat) + " of vehicle " + vehicle.id + " to port " + str(vehicle.emulatorPort)
 		s.send("geo fix " + str(vehicle.lon) + " " + str(vehicle.lat) + "\n")
 
 		time.sleep(1)
@@ -195,6 +222,7 @@ def move(vehicle, lat, lon):
 
 
 	vehicle.moving = 0
+	vehicle.battery = 0
 	print "Vehicle " + vehicle.id + " finished moving to  lat:"  + str(lat) + ", lon:" + str(lon) + " . Closing connection."
 
 	s.close()

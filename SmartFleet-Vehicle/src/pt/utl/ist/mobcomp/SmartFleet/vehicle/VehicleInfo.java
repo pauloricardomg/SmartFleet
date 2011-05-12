@@ -2,6 +2,7 @@ package pt.utl.ist.mobcomp.SmartFleet.vehicle;
 
 public class VehicleInfo {
 
+	private String ipAddress;
 	private Integer port;
     private String vID;
     private Double lat;
@@ -37,7 +38,6 @@ public class VehicleInfo {
 		return port;
 	}
 	
-	private String ipAddress;
 	public Double getLat() {
 		return lat;
 	}

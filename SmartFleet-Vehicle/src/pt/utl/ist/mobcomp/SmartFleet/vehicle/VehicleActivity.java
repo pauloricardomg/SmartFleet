@@ -4,9 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
@@ -15,24 +13,19 @@ import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-
 import pt.utl.ist.mobcomp.SmartFleet.bean.PartyInfo;
 import pt.utl.ist.mobcomp.SmartFleet.bean.StationInfo;
 import pt.utl.ist.mobcomp.SmartFleet.util.HTTPClient;
 import pt.utl.ist.mobcomp.SmartFleet.util.LookupUtils;
 import pt.utl.ist.mobcomp.SmartFleet.util.XmlUtils;
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -49,11 +42,9 @@ public class VehicleActivity extends Activity implements LocationListener{
 	Thread server_socket, client_socket;
 	Webservice service;
 	
-	GossipSender sender;
+	VehicleEngine engine;
 	
-	WebserviceClient service_request;
-	LastSeenVehicleInfo lastSeen;
-	 /** Called when the activity is first created. */
+	private BatteryManager battMan;
 	
 	String id;
 	String initialLat;
@@ -67,8 +58,8 @@ public class VehicleActivity extends Activity implements LocationListener{
 	String capacity;
 	Integer alt;
 	
-	String destLat;
-	String destLon;
+	Double destLat;
+	Double destLon;
 	
 	String destination;
 	String passengerList;
@@ -82,13 +73,14 @@ public class VehicleActivity extends Activity implements LocationListener{
 	List<StationInfo> activeStations;
 	boolean atStation;
 	
-	public static HashMap<String, VehicleInfo> learnedVehicles = new HashMap<String, VehicleInfo>();
-	public static List<String> inRange = new ArrayList<String>();
+	ProgressDialog dialog;
 	
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.nextstop);
+        
+        battMan = BatteryManager.getInstance();
         
 		Properties prop = LookupUtils.readPropertiesFile(this.getResources().getAssets(), "vehicle.conf");
 		id = prop.getProperty("id");
@@ -103,9 +95,10 @@ public class VehicleActivity extends Activity implements LocationListener{
 		myPort = prop.getProperty("vehicle_port");
         atStation = false;
         alt = 0;
-        
-        
 		
+        destination = "";
+        dialog = null;
+        
         destToPassenger = new HashMap<String, List<PartyInfo>>();
         passengersForDest = new LinkedList<PartyInfo>();
         
@@ -131,17 +124,19 @@ public class VehicleActivity extends Activity implements LocationListener{
 		server_socket = new Thread(service);
 		server_socket.start();
 		
-		sender = new GossipSender(this, locationManager);
-		new Thread(sender).start();
+		engine = new VehicleEngine(this, locationManager);
+		new Thread(engine).start();
     }
 
 
 	public static StationInfo getStation(Location location, List<StationInfo> activeStations){
     	
-    	for (StationInfo station : activeStations) {
-			Location stationLocation = station.getLocation();
-			if(stationLocation != null && location.distanceTo(stationLocation) < 1){
-				return station;
+		if(activeStations != null){
+	    	for (StationInfo station : activeStations) {
+				Location stationLocation = station.getLocation();
+				if(stationLocation != null && location.distanceTo(stationLocation) < 0.2){
+					return station;
+				}
 			}
 		}
     	
@@ -151,17 +146,28 @@ public class VehicleActivity extends Activity implements LocationListener{
     
 	@Override
 	public void onLocationChanged(Location location) {
+		if(activeStations != null){
+			show.setText("Distance: " + location.distanceTo(activeStations.get(0).getLocation()));
+		}
 		StationInfo station;
 		if((station = getStation(location, activeStations)) != null){
 			if(!atStation){
+				if(dialog != null){
+					dialog.cancel();
+					dialog = null;
+				}
+				engine.stopMoving();
 				arrivedAtStation(station);
 			}
-		} else {
+		} else if(!destination.equals("")){
+			engine.startMoving();
 			//Moved away from the station
 			atStation = false;
 			showNavigationScreen(location);
 			//show.setText("Lat: " + String.valueOf(location.getLatitude()) + "Lon: " + String.valueOf(location.getLongitude()));
-		}		
+		} else if(dialog == null){
+			dialog = ProgressDialog.show(VehicleActivity.this, "", "Please move vehicle to station..", true);
+		}
 	}
 
 	private String getServerAddress() {
@@ -172,6 +178,8 @@ public class VehicleActivity extends Activity implements LocationListener{
 	
 	
 	public void arrivedAtStation(StationInfo station) {
+		
+		
 		atStation = true;
 		show.setText("Vehicle arrived at station: " + station.getName());
 		
@@ -179,90 +187,38 @@ public class VehicleActivity extends Activity implements LocationListener{
 		// the central server to indicate its state, information about other vehicles that it 			
 		//learned along the way and about any missing vehicles it may have found
 		
-		
 		// Also disembark passengers for this destination upon Arrival
 		disembarkPassengers();
 		
-		//Get string of passengers in vehicle after others disembarked, to be passed in arrived station get call
-		String passengersInVehicle = getPassengersInVehicle();
-		
-		
-		// move to altitude 0 
-		String url,response=null;
-		try{
-			url = String.format("http://" + this.serverIP + ":" + this.gpsPort + "/ChangeAltitude?vehicleID=" + 
-					this.id + ";alt=" +  this.alt );
-			response = contact_server(url);
-		}catch(Exception e){
-			System.out.println("Exception here: "+ e.getMessage());
-		}
-		
 		//then set alt 0;
-		setAlt(0);
-		
-		do{
-			//Call arrived at station method on central server
-			
-			try{
-				if (passengersInVehicle!=null)
-					url = String.format(getServerAddress() + "/ArrivedAtStation?vehicleID=" + id + ";" + "stationID=" + station.getId() + ";" +"freeSeats="+ capacity+ ";" +"parties="+passengersInVehicle+ ";" +"ts="+System.currentTimeMillis());
-				else
-					url = String.format(getServerAddress() + "/ArrivedAtStation?vehicleID=" + id + ";" + "stationID=" + station.getId() + ";" +"freeSeats="+ capacity+ ";" +"ts="+System.currentTimeMillis());
-				response = contactServerNoParsing(url);
-			} catch(Exception e){
-				show.setText("Exception: " + e.getMessage());
-				System.out.println("Exception "+ e.getMessage());
-			}
-			
-			if(response!=null){
-
-				try {
-					passengersForDest =XmlUtils.parsePartyInfos(response);
-				} catch (XmlPullParserException e) {
-					// TODO Auto-generated catch block
-					System.out.println("Exception: " + e.getMessage());
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					System.out.println("Exception: " + e.getMessage());
-				}
-			}
-			
-			if (passengersForDest.size()>0){
-				break;
-			}
-			else{
-				try {
-					Thread.currentThread();
-					Thread.sleep(5000);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					System.out.println("Exception: " + e.getMessage());
-				}
-			} 
-		} while(true);
-
-
-		//TODO:	rechargeBattery()
-
-		//choose next destination from among the destinations for passengers
-		selectNextDest();
-
-		//Update this.passengerlist for the selected destination. Will be used to notify on arrival
-		updatePartyForNextDest();
-		
-		// Action: display next stop on screen
-		wdest.setText(this.destination);
-		wpname.setText(this.passengerList);
-		wbat.setText("TODO");
-		
-		// Each stop takes a total time of 1 minute. For now 20 seconds.
-		try {
-			Thread.currentThread();
-			Thread.sleep(20000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
+		while(alt > 0){
+			lowerAltitude();
 		}
-
+		
+		dialog = ProgressDialog.show(VehicleActivity.this, "", "Contacting station " + station.getName() + " for passengers. Please wait...", true);
+		
+		new WaitPartiesFromStation().execute(station);
+//		atStation = true;
+//		show.setText("Vehicle arrived at station: " + station.getName());
+//		
+//		//TODO: when a vehicle arrives at a  transportation station, it takes communicates with 			
+//		// the central server to indicate its state, information about other vehicles that it 			
+//		//learned along the way and about any missing vehicles it may have found
+//		
+//		// Also disembark passengers for this destination upon Arrival
+//		disembarkPassengers();
+//		
+//		//then set alt 0;
+//		while(this.alt > 0){
+//			lowerAltitude();
+//		}
+//		
+//		ProgressDialog dialog = ProgressDialog.show(VehicleActivity.this, "", "Contacting station " + station.getName() + " for passengers. Please wait...", true);
+	}
+	
+	public void leaveStation(StationInfo station){
+		
+		String url,response=null,status;
 		
 		//Call leave station
 		try{
@@ -275,22 +231,16 @@ public class VehicleActivity extends Activity implements LocationListener{
 		}
 		
 		//Set Altitude
-		setAlt((Integer.parseInt(response))); 
-
-
-		//Change Altitude
-		try{
-			url = String.format("http://" + this.serverIP + ":" + this.gpsPort + "/ChangeAltitude?vehicleID=" + 
-					this.id + ";alt=" +  this.alt );
-			response = contact_server(url);
-		}catch(Exception e){
-			System.out.println("Exception here: "+ e.getMessage());
+		int desiredAltitude = Integer.parseInt(response);
+		desiredAltitude = desiredAltitude/100;
+		for(int i=0; i<desiredAltitude; i++){
+			raiseAltitude();
 		}
 		
 		//Move to the destination
 		try{
-			url = String.format("http://" + this.serverIP + ":" + this.gpsPort + "/MoveTo?vehicleID=" + 
-					this.id + ";lat=" +  this.destLat + ";lon=" + this.destLon );
+			url = String.format("http://" + serverIP + ":" + gpsPort + "/MoveTo?vehicleID=" + 
+					id + ";lat=" +  destLat + ";lon=" + destLon );
 			response = contact_server(url);
 		}catch(Exception e){
 			System.out.println("Exception here: "+ e.getMessage());
@@ -298,7 +248,80 @@ public class VehicleActivity extends Activity implements LocationListener{
 		
 	}
 	
+//	public void showDestination(Integer stationID){
+//		//TODO:	rechargeBattery()
+//		battMan.rechargeAll();
+//
+//		//choose next destination from among the destinations for passengers
+//		selectNextDest();
+//
+//		//Update this.passengerlist for the selected destination. Will be used to notify on arrival
+//		updatePartyForNextDest();
+//		
+//		// Action: display next stop on screen
+//		wdest.setText(this.destination);
+//		wpname.setText(this.passengerList);
+//		wbat.setText("TODO");
+//		
+//		// Each stop takes a total time of 1 minute. For now 20 seconds.
+//		try {
+//			Thread.currentThread();
+//			Thread.sleep(20000);
+//		} catch (InterruptedException e) {
+//			e.printStackTrace();
+//		}
+//	}
 	
+//	public void leaveStation(Integer stationID){
+//		//TODO:	rechargeBattery()
+//		battMan.rechargeAll();
+//
+//		//choose next destination from among the destinations for passengers
+//		selectNextDest();
+//
+//		//Update this.passengerlist for the selected destination. Will be used to notify on arrival
+//		updatePartyForNextDest();
+//		
+//		// Action: display next stop on screen
+//		wdest.setText(this.destination);
+//		wpname.setText(this.passengerList);
+//		wbat.setText("TODO");
+//		
+//		// Each stop takes a total time of 1 minute. For now 20 seconds.
+//		try {
+//			Thread.currentThread();
+//			Thread.sleep(20000);
+//		} catch (InterruptedException e) {
+//			e.printStackTrace();
+//		}
+//
+//		String url,response=null;
+//		//Call leave station
+//		try{
+//			url = String.format(getServerAddress() + "/LeaveStation?vehicleID=" + id + ";" + "stationID=" + station.getId() + ";" +"dest="+destination+ ";" + "ts="+System.currentTimeMillis());
+//			response = contact_server(url);
+//			
+//		} catch(Exception e){
+//			show.setText("Exception: " + e.getMessage());
+//			System.out.println("Exception "+ e.getMessage());
+//		}
+//		
+//		//Set Altitude
+//		int desiredAltitude = Integer.parseInt(response);
+//		desiredAltitude = desiredAltitude/100;
+//		for(int i=0; i<desiredAltitude; i++){
+//			raiseAltitude();
+//		}
+//		
+//		//Move to the destination
+//		try{
+//			url = String.format("http://" + this.serverIP + ":" + this.gpsPort + "/MoveTo?vehicleID=" + 
+//					this.id + ";lat=" +  this.destLat + ";lon=" + this.destLon );
+//			response = contact_server(url);
+//		}catch(Exception e){
+//			System.out.println("Exception here: "+ e.getMessage());
+//		}
+//	}
 	
 
 	public void updatePartyForNextDest()
@@ -335,8 +358,8 @@ public class VehicleActivity extends Activity implements LocationListener{
 		
 		//For now move to the first Dest
 		destination = passengersForDest.get(0).getDestination();
-		destLat =  passengersForDest.get(0).getLat();
-		destLon =  passengersForDest.get(0).getLon();
+		destLat =  new Double(passengersForDest.get(0).getLat());
+		destLon =  new Double(passengersForDest.get(0).getLon());
 	}
 	
 	
@@ -358,20 +381,22 @@ public class VehicleActivity extends Activity implements LocationListener{
 	protected void onResume() {
 		super.onResume();
 		
-		Location actualLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-		if(actualLocation != null){
-			StationInfo station = getStation(actualLocation, activeStations);
-			if(station != null && !atStation){
-				arrivedAtStation(station);
-			}
-		}
+//		Location actualLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+//		if(actualLocation != null){
+//			StationInfo station = getStation(actualLocation, activeStations);
+//			if(station != null && !atStation){
+//				arrivedAtStation(station);
+//			}
+//		}
 		
 		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 400, 1, this);
-		
-		// TODO: battery draining loop
 	}
 	
 	public void onDestroy(){
+		if(dialog != null){
+			dialog.cancel();
+			dialog = null;
+		}
 		super.onDestroy();
 		try{
 			service.closeSocket();
@@ -379,7 +404,7 @@ public class VehicleActivity extends Activity implements LocationListener{
 		}catch(Exception e){
 			e.printStackTrace();
 		}
-		sender.stop();
+		engine.stop();
 		System.out.println("ONDESTROY");
 	}
 
@@ -391,7 +416,7 @@ public class VehicleActivity extends Activity implements LocationListener{
 	}
 	
 	//Parse a given xml	
-	private String parsexml (String response)
+	private static String parsexml (String response)
 		throws XmlPullParserException, IOException
 	{
 		
@@ -439,7 +464,7 @@ private String contactServerNoParsing(String url)
 }
 	
 	
-private String contact_server(String url)
+public static String contact_server(String url)
 {
 	
 	//Make a get Request to the server
@@ -480,17 +505,9 @@ public void showNavigationScreen(Location location){
 	intent.putExtra("vehicleID",this.id);
 	intent.putExtra("position", location);
 	intent.putExtra("destination", destination);
+	intent.putExtra("lat", destLat);
+	intent.putExtra("lon", destLat);
 	startActivityForResult(intent, 0);
-}
-
-public void updateNewVehiclePos(String vId, Double lat, Double lon)
-{
-	// start intent to call navigation map with whatever values are required
-}
-
-public void stopNewVehicle (String vID)
-{
-	// start intent to call and stop displaying the new vehicle on map
 }
 
 private void register_vehicle(){
@@ -529,6 +546,16 @@ private void register_vehicle(){
 
 }
 
+public String getServerIP() {
+	return serverIP;
+}
+
+
+public String getGpsPort() {
+	return gpsPort;
+}
+
+
 @Override
 public void onProviderDisabled(String provider) {
 	// TODO Auto-generated method stub
@@ -545,6 +572,16 @@ public void onProviderEnabled(String provider) {
 public void onStatusChanged(String provider, int status, Bundle extras) {
 	// TODO Auto-generated method stub
 	
+}
+
+public void stopVehicle(){
+	try{
+		String url = String.format("http://" + this.serverIP + ":" + this.gpsPort + "/StopVehicle?vehicleID=" + 
+				this.id);
+		contact_server(url);
+	}catch(Exception e){
+		System.out.println("Exception here: "+ e.getMessage());
+	}
 }
 
 /**
@@ -572,12 +609,23 @@ public void raiseAltitude(){
 	}catch(Exception e){
 		System.out.println("Exception here: "+ e.getMessage());
 	}
+	
 	//CONSUME BATTERY
+	if(battMan.drainBattery(0.2)){ //0.2KW per 100 meters
+		//Means battery is over, vehicle needs to stop :(
+		this.stopVehicle();
+	}
 }
 
 public void lowerAltitude(){
 	alt -= 100;
-	//CONSUME BATTERY
+	try{
+		String url = String.format("http://" + this.serverIP + ":" + this.gpsPort + "/ChangeAltitude?vehicleID=" + 
+				this.id + ";alt=" +  this.alt);
+		contact_server(url);
+	}catch(Exception e){
+		System.out.println("Exception here: "+ e.getMessage());
+	}
 }
 
 
@@ -598,22 +646,6 @@ public void setDestination(String destination) {
 
 
 /**
- * @return the battery
- */
-public double getBattery() {
-	return battery;
-}
-
-
-/**
- * @param battery the battery to set
- */
-public void setBattery(double battery) {
-	this.battery = battery;
-}
-
-
-/**
  * @return the passengerList
  */
 public String getPassengerList() {
@@ -628,14 +660,113 @@ public String getId() {
 	return id;
 }
 
+class WaitPartiesFromStation extends AsyncTask<StationInfo, String, Boolean> {
+	
 
-public HashMap<String, VehicleInfo> getLearnedVehicles() {
-	return learnedVehicles;
+	private StationInfo station;
+	
+    protected Boolean doInBackground(StationInfo... args) {
+    	station = args[0];
+		
+		String url,response=null;
+		
+		//Get string of passengers in vehicle after others disembarked, to be passed in arrived station get call
+		String passengersInVehicle = getPassengersInVehicle();
+		
+		do{
+			//Call arrived at station method on central server
+			
+			try{
+				if (passengersInVehicle!=null)
+					url = String.format(getServerAddress() + "/ArrivedAtStation?vehicleID=" + id + ";" + "stationID=" + station.getId() + ";" +"freeSeats="+ capacity+ ";" +"parties="+passengersInVehicle+ ";" +"ts="+System.currentTimeMillis());
+				else
+					url = String.format(getServerAddress() + "/ArrivedAtStation?vehicleID=" + id + ";" + "stationID=" + station.getId() + ";" +"freeSeats="+ capacity+ ";" +"ts="+System.currentTimeMillis());
+				response = contactServerNoParsing(url);
+			} catch(Exception e){
+				System.out.println("Exception "+ e.getMessage());
+			}
+			
+			if(response!=null){
+
+				try {
+					passengersForDest =XmlUtils.parsePartyInfos(response);
+				} catch (XmlPullParserException e) {
+					// TODO Auto-generated catch block
+					System.out.println("Exception: " + e.getMessage());
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					System.out.println("Exception: " + e.getMessage());
+				}
+			}
+			
+			if (passengersForDest.size()>0){
+				break;
+			}
+			else{
+				try {
+					publishProgress("");
+					Thread.sleep(5000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					System.out.println("Exception: " + e.getMessage());
+				}
+			} 
+		} while(true);
+		
+		return true;
+    }
+
+    protected void onProgressUpdate(String... progress) {
+		dialog.setMessage("Station has no parties to embark. Waiting..");
+    }
+
+    protected void onPostExecute(Boolean result) {
+		dialog.cancel();
+    	
+		battMan.rechargeAll();
+
+		//choose next destination from among the destinations for passengers
+		selectNextDest();
+
+		//Update this.passengerlist for the selected destination. Will be used to notify on arrival
+		updatePartyForNextDest();
+		
+		// Action: display next stop on screen
+		wdest.setText(destination);
+		wpname.setText(passengerList);
+		wbat.setText(battMan.getBatteryLevel()*1000 + "W");
+		
+		new WaitEmbark().execute(station);
+    }
 }
 
+class WaitEmbark extends AsyncTask<StationInfo, String, Boolean> {
 
-public List<String> getInRange() {
-	return inRange;
+	private StationInfo info;
+	
+	@Override
+	protected Boolean doInBackground(StationInfo... params) {
+		info = params[0];
+		// Each stop takes a total time of 1 minute. For now 20 seconds.
+		try {
+			Thread.sleep(20000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}	
+		
+		
+		return true;
+	}
+	
+    protected void onProgressUpdate(String... progress) {
+		dialog.setMessage("Station has no parties to embark. Waiting..");
+    }
+	
+	
+    protected void onPostExecute(Boolean result) {
+    	//show.setText("Arrived here");
+		leaveStation(info);
+    }
 }
 
 }
