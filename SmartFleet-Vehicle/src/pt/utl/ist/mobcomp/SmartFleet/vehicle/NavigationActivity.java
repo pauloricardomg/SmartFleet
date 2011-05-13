@@ -5,6 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import pt.utl.ist.mobcomp.SmartFleet.bean.StationInfo;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
@@ -13,8 +14,8 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.TextView;
 import android.widget.Toast;
-import android.os.Handler;
 
 import com.google.android.maps.GeoPoint;
 import com.google.android.maps.ItemizedOverlay;
@@ -24,6 +25,8 @@ import com.google.android.maps.OverlayItem;
 
 public class NavigationActivity extends MapActivity implements LocationListener {
 
+	private static Double VEHICLE_SPEED = 10.0;
+	
 	private MapView map=null;
 	
 	List<StationInfo> activeStations;
@@ -40,11 +43,30 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 
 	private VehicleManager manager;
 
+	private TextView textAlt;
+
+	private TextView textBatt;
+
+	private TextView textPart;
+
+	private TextView textTime;
+
+	private BatteryManager battMan;
+
+	private TextView textDest;
+
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.nav);
 		this.manager = VehicleManager.getInstance();
+		this.battMan = BatteryManager.getInstance();
+		
+		textDest = (TextView) this.findViewById(R.id.dest);
+		textAlt = (TextView) this.findViewById(R.id.alt);
+		textBatt = (TextView) this.findViewById(R.id.batt);
+		textPart = (TextView) this.findViewById(R.id.parties);
+		textTime = (TextView) this.findViewById(R.id.time);
 		
 		// Get the location manager
 		locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
@@ -60,6 +82,9 @@ public class NavigationActivity extends MapActivity implements LocationListener 
         pList = extras.getString("pList"); 
         allPassengers = extras.getString("allPassengers");
         passengersNotForNextDest = extras.getString("passengersNotForNextDest");
+        
+		textPart.setText("Parties: " + this.pList);
+        textDest.setText("Destination: " + destination);
         
         currDest = new Location(LocationManager.GPS_PROVIDER);
         currDest.setLatitude(lat);
@@ -144,16 +169,15 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 			vehiclesOverlay.update(getVehicleItem(location));
 			map.getController().setCenter(getPoint(location));
 			
-			final float distanceTo = location.distanceTo(currDest);
-			
-			/*new Handler().post(new Runnable() {
-				@Override
-				public void run() {
-					Toast.makeText(NavigationActivity.this,"Distance to location: " + distanceTo + "Km", Toast.LENGTH_LONG).show();		
-				}
-			}); */
-			
+			float distanceTo = location.distanceTo(currDest);
 			//Toast.makeText(NavigationActivity.this, "Distance to location: " + distanceTo + "Km",Toast.LENGTH_LONG);
+			
+			int timeToReach = (int)(distanceTo/VEHICLE_SPEED);
+			
+			textBatt.setText("Battery: " + (int)(battMan.getBatteryLevel() * 1000) + "W");
+			textAlt.setText("Altitude: " + battMan.getAlt());
+			textTime.setText("Time to dest: " + timeToReach + "s (" + (int)distanceTo + "m)");
+			
 			//show.setText("Lat: " + String.valueOf(location.getLatitude()) + "Lon: " + String.valueOf(location.getLongitude()));
 			//still moving
 			// Display current position on map and expected time of arrival during flight	
@@ -286,11 +310,7 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 			for (StationInfo info : infos) {
 				list.add(new OverlayItem(getPoint(info.getLat(), info.getLon()),
 						info.getName(),
-						info.getName() + " - Station\n" +
-		
-						"Number of passengers waiting: " + info.getQueueSize() + "\n" +
-						"Average wait time: " + info.getWaitTime() + "s \n" + 
-						"Vehicles present: " + info.getVehicles() + "\n"));
+						info.getName() + " - Station"));
 			}
 		}
 	
@@ -301,8 +321,7 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 		List<OverlayItem> list = new LinkedList<OverlayItem>();
 		
 		list.add(new OverlayItem(getPoint(location), vehicleID,
-				"Vehicle: " + vehicleID + "\n" +
-		"Battery Level: 0"));
+				"Vehicle: " + vehicleID));
 		
 		if(manager.getInRange().size() > 0){
 			double lat, lon;
@@ -340,6 +359,16 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 	@Override
 	public void onStatusChanged(String provider, int status, Bundle extras) {
 		// TODO Auto-generated method stub
+		
+	}
+	
+	class BatteryOffReceiver extends BroadcastReceiver{
+
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			// TODO Auto-generated method stub
+			
+		}
 		
 	}
     

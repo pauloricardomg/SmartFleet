@@ -149,10 +149,12 @@ def stopVehicle(input):
 		print "Vehicle " + input.stationID + " not found. Rejecting request."
 		return 0
 
-	vehicle.batt = 0
-
         if(hasattr(input,"notify")):
-		sendMessage(vehicle, "shortcircuit\n")
+		sendMessage(vehicle, "shortcircuit;" + vehicleID)
+
+	time.sleep(1)
+
+	vehicle.batt = 0
 
 	return 1
 

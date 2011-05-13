@@ -7,6 +7,10 @@ public class VehicleInfo {
 	private String lon;
 	private int battLevel;
 	
+	private String passengers;
+	private String travelPath;
+	private Long lastUpdate;
+	
 	public String getId() {
 		return id;
 	}
@@ -68,6 +72,24 @@ public class VehicleInfo {
 		} else if (!lon.equals(other.lon))
 			return false;
 		return true;
+	}
+	public void setPassengers(String passengers) {
+		this.passengers = passengers;
+	}
+	public String getPassengers() {
+		return passengers;
+	}
+	public void setTravelPath(String travelPath) {
+		this.travelPath = travelPath;
+	}
+	public String getTravelPath() {
+		return travelPath;
+	}
+	public void setLastUpdate(Long lastUpdate) {
+		this.lastUpdate = lastUpdate;
+	}
+	public Long getLastUpdate() {
+		return lastUpdate;
 	}
 	
 }

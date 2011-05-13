@@ -6,24 +6,37 @@ public class BatteryManager {
 		
 	public static double MAX_CAPACITY = 10.0;
 	
-	public static void createInstance(VehicleActivity vehicleActivity){
-		
-	}
-	
-	public static BatteryManager getInstance(){
-		if(instance == null){
-			instance = new BatteryManager();
-		}
+	public static BatteryManager createInstance(String serverIP, String gpsPort, String myId){
+		instance = new BatteryManager(serverIP, gpsPort, myId);
 		return instance;
 	}
 	
-	private double batteryLevel;
+	public static BatteryManager getInstance(){
+		return instance;
+	}
 	
-	public BatteryManager(){
+	private Integer alt;
+	private double batteryLevel;
+
+	private String serverIP;
+
+	private String gpsPort;
+
+	private String myId;
+	
+	public BatteryManager(String serverIP, String gpsPort, String myId){
+		this.serverIP = serverIP;
+		this.gpsPort = gpsPort;
+		this.myId = myId;
+		this.alt = 0;
 		this.batteryLevel = MAX_CAPACITY;
 	}
 	
 	
+	public Integer getAlt() {
+		return alt;
+	}
+
 	public synchronized double getBatteryLevel(){
 		return this.batteryLevel;
 	}
@@ -44,6 +57,51 @@ public class BatteryManager {
 	
 	public synchronized void drainAll(){
 		this.batteryLevel = 0;
+		while(alt != 0){
+			lowerAltitude();
+		}
+	}
+	
+	
+	
+	//ALTITUDE
+	
+	public synchronized void raiseAltitude(){
+		alt += 100;
+		try{
+			String url = String.format("http://" + this.serverIP + ":" + this.gpsPort + "/ChangeAltitude?vehicleID=" + 
+					this.myId + ";alt=" +  this.alt);
+			VehicleActivity.contact_server(url);
+		}catch(Exception e){
+			System.out.println("Exception here: "+ e.getMessage());
+		}
+		
+		//CONSUME BATTERY
+		if(drainBattery(0.2)){ //0.2KW per 100 meters
+			//Means battery is over, vehicle needs to stop :(
+			this.stopVehicle();
+		}
+	}
+	
+	public synchronized void lowerAltitude(){
+		alt -= 100;
+		try{
+			String url = String.format("http://" + this.serverIP + ":" + this.gpsPort + "/ChangeAltitude?vehicleID=" + 
+					this.myId + ";alt=" +  this.alt);
+			VehicleActivity.contact_server(url);
+		}catch(Exception e){
+			System.out.println("Exception here: "+ e.getMessage());
+		}
+	}
+	
+	public void stopVehicle(){
+		try{
+			String url = String.format("http://" + this.serverIP + ":" + this.gpsPort + "/StopVehicle?vehicleID=" + 
+					this.myId);
+			VehicleActivity.contact_server(url);
+		}catch(Exception e){
+			System.out.println("Exception here: "+ e.getMessage());
+		}
 	}
 	
 }

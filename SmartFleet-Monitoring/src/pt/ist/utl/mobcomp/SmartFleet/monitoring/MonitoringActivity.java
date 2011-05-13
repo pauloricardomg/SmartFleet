@@ -25,6 +25,8 @@ public class MonitoringActivity extends MapActivity {
 	List<VehicleInfo> currentVehicles;
 	SmartFleetOverlay stationsOverlay;
 	SmartFleetOverlay vehiclesOverlay;
+	SmartFleetOverlay crashedOverlay;	
+	
 	Thread stationsThread;
 	Thread vehiclesThread;
 	
@@ -62,6 +64,11 @@ public class MonitoringActivity extends MapActivity {
 		marker = getResources().getDrawable(R.drawable.ship);
 		marker.setBounds(0, 0, marker.getIntrinsicWidth(), marker.getIntrinsicHeight());
 		vehiclesOverlay = new SmartFleetOverlay(marker);
+		
+		//Crashed overlay
+		marker = getResources().getDrawable(R.drawable.crashed);
+		marker.setBounds(0, 0, marker.getIntrinsicWidth(), marker.getIntrinsicHeight());
+		crashedOverlay = new SmartFleetOverlay(marker);		
 		
 		currentStations = null;
 		currentVehicles = null;
@@ -121,6 +128,8 @@ public class MonitoringActivity extends MapActivity {
 						currentVehicles = activeVehicles;
 						List<OverlayItem> overlayItems = getVehicleItems(activeVehicles);
 						vehiclesOverlay.update(overlayItems);
+						List<OverlayItem> crashedVehicles = getCrashedVehicleItems(activeVehicles);
+						crashedOverlay.update(crashedVehicles);
 					}
 					
 					try {
@@ -239,9 +248,32 @@ public class MonitoringActivity extends MapActivity {
 		
 		if(infos != null){
 			for (VehicleInfo info : infos) {
-				list.add(new OverlayItem(getPoint(info.getLat(), info.getLon()), info.getId(),
-						"Vehicle: " + info.getId() + "\n" +
-						"Battery Level: " + info.getBattLevel()));
+				list.add(getVehicleOverlayItem(info));
+			}
+		}
+	
+		return list;
+	}
+
+
+
+	private OverlayItem getVehicleOverlayItem(VehicleInfo info) {
+		return new OverlayItem(getPoint(info.getLat(), info.getLon()), info.getId(),
+				"Vehicle: " + info.getId() + "\n" +
+				"Passengers: " + info.getPassengers() + "\n" +
+				"Destination: " + info.getTravelPath() + "\n" +
+				"Last contact: " + (System.currentTimeMillis()-info.getLastUpdate())/1000 + "s \n" +
+				"Battery Level: " + info.getBattLevel() + "W");
+	}
+	
+	private List<OverlayItem> getCrashedVehicleItems(List<VehicleInfo> infos){
+		List<OverlayItem> list = new LinkedList<OverlayItem>();
+		
+		if(infos != null){
+			for (VehicleInfo info : infos) {
+				if(info.getBattLevel() == 0){
+					list.add(getVehicleOverlayItem(info));
+				}
 			}
 		}
 	

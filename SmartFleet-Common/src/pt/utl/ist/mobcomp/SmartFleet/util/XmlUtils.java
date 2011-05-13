@@ -68,8 +68,16 @@ public class XmlUtils {
 					} else if(attr.equals("lon")){
 						currentInfo.setLon(text);
 					} else if(attr.equals("battLevel")){
-						int battLevel = new Integer(text);
+						Double level = new Double(text);
+						int battLevel = (int)(level*1000);
 						currentInfo.setBattLevel(battLevel);
+					} else if(attr.equals("passengers")){
+						currentInfo.setPassengers(text);
+					} else if(attr.equals("travelPath")){
+						currentInfo.setTravelPath(text);
+					} else if(attr.equals("lastUpdate")){
+						Long ts = new Long(text);
+						currentInfo.setLastUpdate(ts);
 					}
 				}
 				break;

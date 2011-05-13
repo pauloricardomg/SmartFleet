@@ -8,7 +8,6 @@ public class VehicleInfo {
     private Double lat;
     private Double lon;
     private Integer alt;
-    private String type;
     private String dest;
     private String pList;
     private Double bat;
@@ -18,6 +17,13 @@ public class VehicleInfo {
 		this.vID = vID;
 		this.ipAddress = ipAddress;
 		this.port = port;
+	    lat = null;
+	    lon = null;
+	    alt = null;
+	    dest = null;
+	    pList = null;
+	    bat = null;
+	    time = null;
 	}
 
 	public String getvID() {
@@ -60,14 +66,6 @@ public class VehicleInfo {
 
 	public void setAlt(Integer alt) {
 		this.alt = alt;
-	}
-
-	public String getType() {
-		return type;
-	}
-
-	public void setType(String type) {
-		this.type = type;
 	}
 
 	public String getDest() {

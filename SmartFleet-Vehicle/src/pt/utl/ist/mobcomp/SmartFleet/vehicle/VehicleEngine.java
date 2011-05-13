@@ -54,7 +54,7 @@ public class VehicleEngine implements Runnable {
 					double lon = location.getLongitude();
 					double lat = location.getLatitude();
 
-					Integer alt = vehicleActivity.getAlt();
+					Integer alt = battMan.getAlt();
 					String dest = vehicleActivity.getDestination();
 					String pList = vehicleActivity.getPassengerList();
 					Double bat = battMan.getBatteryLevel();
@@ -67,7 +67,7 @@ public class VehicleEngine implements Runnable {
 				
 				if(moving && battMan.getBatteryLevel() > 0 && battMan.drainBattery(BATTERY_DRAIN_RATE)){
 					//Means battery is over, vehicle needs to stop :(
-					vehicleActivity.stopVehicle();
+					battMan.stopVehicle();
 				}
 				
 				Thread.sleep(1000L);

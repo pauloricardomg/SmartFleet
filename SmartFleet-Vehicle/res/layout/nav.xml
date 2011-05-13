@@ -5,11 +5,24 @@
  
     <com.google.android.maps.MapView 
         android:id="@+id/mapView"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
+        android:layout_width="wrap_content"
+        android:layout_height="350px"
         android:enabled="true"
         android:clickable="true"
-        android:apiKey="0gh4eG6PcRCM-2k8ciK4qk95neziJEIkyUyIOcA"
+        android:apiKey="0FriH-YYk8DxjG2md-Jkvcce6JTXlrdQOkX06cA"
         />
+    <TableLayout 
+    android:layout_width="wrap_content" 
+    android:layout_below="@+id/mapView" 
+    android:layout_height="wrap_content" 
+    android:id="@+id/tableLayout1" 
+    android:layout_alignLeft="@+id/mapView" 
+    android:layout_alignRight="@+id/mapView">
+        <TextView android:text="Destination:" android:id="@+id/dest" android:layout_width="wrap_content" android:layout_height="wrap_content"></TextView>
+        <TextView android:text="Parties:" android:id="@+id/parties" android:layout_width="wrap_content" android:layout_height="wrap_content"></TextView>
+        <TextView android:text="Time to dest:" android:id="@+id/time" android:layout_width="wrap_content" android:layout_height="wrap_content"></TextView>
+        <TextView android:text="Battery:" android:id="@+id/batt" android:layout_width="wrap_content" android:layout_height="wrap_content"></TextView>
+        <TextView android:text="Altitude:" android:id="@+id/alt" android:layout_width="wrap_content" android:layout_height="wrap_content"></TextView>
+    </TableLayout>
  
 </RelativeLayout>

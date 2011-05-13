@@ -2,12 +2,8 @@ package pt.utl.ist.mobcomp.SmartFleet.vehicle;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
-import java.util.Enumeration;
 
 import android.location.Location;
 import android.location.LocationManager;
@@ -34,11 +30,14 @@ public class Webservice implements Runnable {
 	
 	private VehicleManager manager;
 	
+	private BatteryManager battMan;
+	
 	Webservice(VehicleActivity object,LocationManager lm){
 		vehicleActivity = object;
 		myvID = object.getId();
 		this.lm = lm;
 		this.manager = VehicleManager.getInstance();
+		this.battMan = BatteryManager.getInstance();
 	}
 
 	public void run() {
@@ -91,10 +90,10 @@ public class Webservice implements Runnable {
 								double lon = location.getLongitude();
 								double lat = location.getLatitude();
 
-								Integer alt = vehicleActivity.getAlt();
+								Integer alt = battMan.getAlt();
 								String dest = vehicleActivity.getDestination();
 								String pList = vehicleActivity.getPassengerList();
-								Double bat = BatteryManager.getInstance().getBatteryLevel();
+								Double bat = battMan.getBatteryLevel();
 								Runnable recvwarn = new WebserviceClient("recvwarn", info.getIpAddress(), info.getPort(), myvID, lat, lon, alt, dest, pList, bat, System.currentTimeMillis());
 								new Thread(recvwarn).start();
 							}
@@ -134,7 +133,7 @@ public class Webservice implements Runnable {
 
 							updateVehicleInfo(split, otherVehicleID);
 							String otherAlt = split[4];
-							if(vehicleActivity.getAlt() == Integer.parseInt(otherAlt)){
+							if(battMan.getAlt() == Integer.parseInt(otherAlt)){
 
 								Log.d("RecvWarn", myvID +" "+otherVehicleID);
 
@@ -146,7 +145,7 @@ public class Webservice implements Runnable {
 											Toast.makeText(vehicleActivity,"Vehicle " + otherVehicleID + " was too close. Moving up 100 mts", Toast.LENGTH_LONG).show();		
 										}
 									});
-									vehicleActivity.raiseAltitude();
+									battMan.raiseAltitude();
 								}
 							}
 
@@ -155,7 +154,7 @@ public class Webservice implements Runnable {
 							//if battery is zero, mark vehicle as missing.
 							updateVehicleInfo(split, otherVehicleID);
 						} else if (type.compareToIgnoreCase("shortcircuit") == 0){
-							BatteryManager.getInstance().drainAll();
+							battMan.drainAll();
 							handler.post(new Runnable() {
 								@Override
 								public void run() {
@@ -225,22 +224,5 @@ public class Webservice implements Runnable {
 		else
 			return false;
 	}
-
-	// gets the ip address of your phone's network
-	private String getLocalIpAddress() {
-		try {
-			for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
-				NetworkInterface intf = en.nextElement();
-				for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements();) {
-					InetAddress inetAddress = enumIpAddr.nextElement();
-					if (!inetAddress.isLoopbackAddress()) { return inetAddress.getHostAddress().toString(); }
-				}
-			}
-		} catch (SocketException ex) {
-			Log.e("ServerActivity", ex.toString());
-		}
-		return null;
-	}
-
 }
 

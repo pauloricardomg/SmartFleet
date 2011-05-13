@@ -6,10 +6,10 @@ $def with (vehicles)
 		<id>$entry.id</id>
 		<lat>$entry.lat</lat>
 		<lon>$entry.lon</lon>
-		<passengers>TODO</passengers>
+		<alt>$entry.alt</alt>
+		<passengers>$entry.parties</passengers>
 		<battLevel>$entry.battLevel</battLevel>
-		<travelPath>TODO</travelPath>
-		<lastInteraction>TODO</lastInteraction>
-		<lastUpdate>TODO</lastUpdate>
+		<travelPath>$entry.dest</travelPath>
+		<lastUpdate>$entry.ts</lastUpdate>
 	</Vehicle>
 </VehicleInfo>

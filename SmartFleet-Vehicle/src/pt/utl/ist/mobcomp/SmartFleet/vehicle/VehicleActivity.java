@@ -56,7 +56,6 @@ public class VehicleActivity extends Activity implements LocationListener{
 	String gpsPort;
 	String emulatorPort;
 	String capacity;
-	Integer alt;
 	
 	Double destLat;
 	Double destLon;
@@ -79,9 +78,7 @@ public class VehicleActivity extends Activity implements LocationListener{
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.nextstop);
-        
-        battMan = BatteryManager.getInstance();
-        
+                
 		Properties prop = LookupUtils.readPropertiesFile(this.getResources().getAssets(), "vehicle.conf");
 		id = prop.getProperty("id");
 		initialLat = prop.getProperty("lat");
@@ -94,8 +91,9 @@ public class VehicleActivity extends Activity implements LocationListener{
 		myIp = prop.getProperty("vehicle_ip");
 		myPort = prop.getProperty("vehicle_port");
         atStation = false;
-        alt = 0;
 		
+        battMan = BatteryManager.createInstance(serverIP, gpsPort, id);
+        
         destination = "";
         dialog = null;
         
@@ -190,8 +188,8 @@ public void arrivedAtDestNotStation() {
 		disembarkPassengers();
 		
 		//then set alt 0;
-		while(alt > 0){
-			lowerAltitude();
+		while(battMan.getAlt() > 0){
+			battMan.lowerAltitude();
 		}
 		
 		//choose next destination from among the destinations for passengers
@@ -205,7 +203,7 @@ public void arrivedAtDestNotStation() {
 		updatePartyForNextDest();
 		
 		//raise altitude to 100m and start moving
-		raiseAltitude();
+		battMan.raiseAltitude();
 		
 		diag.cancel();
 		
@@ -235,7 +233,7 @@ public void arrivedAtDestNotStation() {
 			//Update this.passengerlist for the selected destination. Will be used to notify on arrival
 			updatePartyForNextDest();
 
-			raiseAltitude();
+			battMan.raiseAltitude();
 				
 			diag.cancel();
 			
@@ -288,8 +286,8 @@ public void arrivedAtDestNotStation() {
 		disembarkPassengers();
 		
 		//then set alt 0;
-		while(alt > 0){
-			lowerAltitude();
+		while(battMan.getAlt() > 0){
+			battMan.lowerAltitude();
 		}
 		
 		dialog = ProgressDialog.show(VehicleActivity.this, "", "Contacting station " + station.getName() + " for passengers. Please wait...", true);
@@ -331,7 +329,7 @@ public void arrivedAtDestNotStation() {
 		int desiredAltitude = Integer.parseInt(response);
 		desiredAltitude = desiredAltitude/100;
 		for(int i=0; i<desiredAltitude; i++){
-			raiseAltitude();
+			battMan.raiseAltitude();
 		}
 		
 		//Move to the destination
@@ -345,82 +343,6 @@ public void arrivedAtDestNotStation() {
 		
 	}
 	
-//	public void showDestination(Integer stationID){
-//		//TODO:	rechargeBattery()
-//		battMan.rechargeAll();
-//
-//		//choose next destination from among the destinations for passengers
-//		selectNextDest();
-//
-//		//Update this.passengerlist for the selected destination. Will be used to notify on arrival
-//		updatePartyForNextDest();
-//		
-//		// Action: display next stop on screen
-//		wdest.setText(this.destination);
-//		wpname.setText(this.passengerList);
-//		wbat.setText("TODO");
-//		
-//		// Each stop takes a total time of 1 minute. For now 20 seconds.
-//		try {
-//			Thread.currentThread();
-//			Thread.sleep(20000);
-//		} catch (InterruptedException e) {
-//			e.printStackTrace();
-//		}
-//	}
-	
-//	public void leaveStation(Integer stationID){
-//		//TODO:	rechargeBattery()
-//		battMan.rechargeAll();
-//
-//		//choose next destination from among the destinations for passengers
-//		selectNextDest();
-//
-//		//Update this.passengerlist for the selected destination. Will be used to notify on arrival
-//		updatePartyForNextDest();
-//		
-//		// Action: display next stop on screen
-//		wdest.setText(this.destination);
-//		wpname.setText(this.passengerList);
-//		wbat.setText("TODO");
-//		
-//		// Each stop takes a total time of 1 minute. For now 20 seconds.
-//		try {
-//			Thread.currentThread();
-//			Thread.sleep(20000);
-//		} catch (InterruptedException e) {
-//			e.printStackTrace();
-//		}
-//
-//		String url,response=null;
-//		//Call leave station
-//		try{
-//			url = String.format(getServerAddress() + "/LeaveStation?vehicleID=" + id + ";" + "stationID=" + station.getId() + ";" +"dest="+destination+ ";" + "ts="+System.currentTimeMillis());
-//			response = contact_server(url);
-//			
-//		} catch(Exception e){
-//			show.setText("Exception: " + e.getMessage());
-//			System.out.println("Exception "+ e.getMessage());
-//		}
-//		
-//		//Set Altitude
-//		int desiredAltitude = Integer.parseInt(response);
-//		desiredAltitude = desiredAltitude/100;
-//		for(int i=0; i<desiredAltitude; i++){
-//			raiseAltitude();
-//		}
-//		
-//		//Move to the destination
-//		try{
-//			url = String.format("http://" + this.serverIP + ":" + this.gpsPort + "/MoveTo?vehicleID=" + 
-//					this.id + ";lat=" +  this.destLat + ";lon=" + this.destLon );
-//			response = contact_server(url);
-//		}catch(Exception e){
-//			System.out.println("Exception here: "+ e.getMessage());
-//		}
-//	}
-	
-
 	public void updatePartyForNextDest()
 	{
 		this.passengerList = null;
@@ -706,60 +628,6 @@ public void onStatusChanged(String provider, int status, Bundle extras) {
 	
 }
 
-public void stopVehicle(){
-	try{
-		String url = String.format("http://" + this.serverIP + ":" + this.gpsPort + "/StopVehicle?vehicleID=" + 
-				this.id);
-		contact_server(url);
-	}catch(Exception e){
-		System.out.println("Exception here: "+ e.getMessage());
-	}
-}
-
-/**
- * @param alt the alt to set
- */
-public void setAlt(Integer alt) {
-	this.alt = alt;
-}
-
-
-/**
- * @return the alt
- */
-public Integer getAlt() {
-	return alt;
-}
-
-
-public void raiseAltitude(){
-	alt += 100;
-	try{
-		String url = String.format("http://" + this.serverIP + ":" + this.gpsPort + "/ChangeAltitude?vehicleID=" + 
-				this.id + ";alt=" +  this.alt);
-		contact_server(url);
-	}catch(Exception e){
-		System.out.println("Exception here: "+ e.getMessage());
-	}
-	
-	//CONSUME BATTERY
-	if(battMan.drainBattery(0.2)){ //0.2KW per 100 meters
-		//Means battery is over, vehicle needs to stop :(
-		this.stopVehicle();
-	}
-}
-
-public void lowerAltitude(){
-	alt -= 100;
-	try{
-		String url = String.format("http://" + this.serverIP + ":" + this.gpsPort + "/ChangeAltitude?vehicleID=" + 
-				this.id + ";alt=" +  this.alt);
-		contact_server(url);
-	}catch(Exception e){
-		System.out.println("Exception here: "+ e.getMessage());
-	}
-}
-
 
 /**
  * @return the destination
@@ -804,6 +672,19 @@ class WaitPartiesFromStation extends AsyncTask<StationInfo, String, Boolean> {
 		
 		//Get string of passengers in vehicle after others disembarked, to be passed in arrived station get call
 		String passengersInVehicle = getPassengersInVehicle();
+		
+		try{
+			for (VehicleInfo inf : VehicleManager.getInstance().getLearnedVehicles().values()) {
+				if(inf.getLat() != null){
+					url = String.format(getServerAddress() + "/Update?vid=" + inf.getvID() + ";lat=" + inf.getLat() + 
+							";lon=" + inf.getLon() + ";alt=" + inf.getAlt() + ";dest=" + inf.getDest() + 
+							";plist=" + inf.getpList() + ";bat=" + inf.getBat() + ";ts=" + inf.getTime());	
+					contact_server(url);
+				}
+			}
+		}catch(Exception e){
+			System.out.println("Exception here: "+ e.getMessage());
+		}
 		
 		do{
 			//Call arrived at station method on central server

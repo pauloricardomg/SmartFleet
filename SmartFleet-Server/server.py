@@ -24,8 +24,9 @@ urls = (
 	# http://serverIP:8080/ArrivedAtStation?vehicleID=vehicle001;stationID=12345;freeSeats=3;(parties=p1,p2,p3);ts=1305149006317 METHOD: GET (Response: PartyInfo.xml)
 	'/ArrivedAtStation', 'ArrivedAtStation',
 	# http://serverIP:8080/LeaveStation?vehicleID=vehicle001;stationID=12345;dest=dest;ts=1305149006317 METHOD: GET (Response: SimpleResponse.xml)
-	'/LeaveStation', 'LeaveStation'
-
+	'/LeaveStation', 'LeaveStation',
+	# http://serverIP:8080/Update?vid=1;lat=33.222;lon=444.55;alt=100;dest=blabla;plist=bla,bla;bat=123.456;ts=1305149006317 METHOD: GET (Response: SimpleResponse.xml)
+	'/Update', 'Update',
 )
 
 app = web.application(urls, globals())
@@ -63,6 +64,12 @@ class LeaveStation:
 	result = leaveStation(web.input())
         return render.SimpleResponse(result)
 
+class Update:
+    def GET(self): # it is GET just for testing from the browser, change it later to POST
+	result = update(web.input())
+        return render.SimpleResponse(result)
+
+
 web.webapi.internalerror = web.debugerror
 if __name__ == '__main__': app.run()
 
@@ -79,13 +86,13 @@ class Vehicle:
 		    self.id = id
 		    self.capacity = capacity
 		    self.current = 0
-		    self.battLevel = 0
+		    self.battLevel = 10.0
 		    self.lat = lat
 		    self.lon = lon
 		    self.alt = 0
 		    self.dest = None 
 		    self.parties = []
-		    self.ts = 0
+		    self.ts = 0L
 		    
 
 	def __eq__(self, other):
@@ -235,9 +242,8 @@ def arrivedAtStation(input):
 	vehicleID = input.vehicleID
 	stationID = input.stationID
 	freeSeats = int(input.freeSeats)
-	ts = input.ts
-	print "Vehicle " + vehicleID + " arrived at station " + stationID + " with " + str(freeSeats) + " free seats. TS=" + ts
-
+	ts = long(input.ts)
+	print "Vehicle " + vehicleID + " arrived at station " + stationID + " with " + str(freeSeats) + " free seats. TS=" + input.ts
 
 	if(vehicleID in altitudes):
 		print "Removing vehicle from altitudes list"
@@ -253,12 +259,15 @@ def arrivedAtStation(input):
 		print "Vehicle " + input.stationID + " not found. Rejecting request."
 		return []
 
+	if(vehicle.id not in station.vehicles):
+		station.vehicles.append(vehicleID)
+
 	if(hasattr(input,"parties")):
 			stillInVehicle = input.parties.split(",")
 			print "Parties " + str(stillInVehicle) + " still on vehicle."
 			for party in vehicle.parties[:]:
-				if(not party.name in stillInVehicle):
-					print "Party " + party.name + " is no longer in vehicle."
+				if(not party in stillInVehicle):
+					print "Party " + party + " is no longer in vehicle."
 					vehicle.parties.remove(party)
 	else:
 		print "No parties currently in the car, cleaning party list"
@@ -266,6 +275,7 @@ def arrivedAtStation(input):
 
 	vehicle.lat = station.lat
 	vehicle.lon = station.lon
+	vehicle.alt = 0
 	vehicle.ts = ts
 
 	boardingParties = []
@@ -275,7 +285,7 @@ def arrivedAtStation(input):
 		if(freeSeats >= passengers):
 			freeSeats -= passengers
 			print "Boarding party " + party.name + " on vehicle " + vehicleID + ". Left seats: " + str(freeSeats)
-			vehicle.parties.append(party)
+			vehicle.parties.append(party.name)
 			boardingParties.append(party)
 			if(freeSeats == 0):
 				break
@@ -306,8 +316,8 @@ def leaveStation(input):
 	vehicleID = input.vehicleID
 	stationID = input.stationID
 	dest = input.dest
-	ts = input.ts
-	print "Vehicle " + vehicleID + " left  station " + stationID + " to destination " + dest + ". TS=" + ts
+	ts = long(input.ts)
+	print "Vehicle " + vehicleID + " left  station " + stationID + " to destination " + dest + ". TS=" + input.ts
 
 	station = activeStations.get(stationID)
 	if(station == None):
@@ -319,8 +329,11 @@ def leaveStation(input):
 		print "Vehicle " + input.stationID + " not found. Rejecting request."
 		return -1
 
+	station.vehicles.remove(vehicleID)
+
 	vehicle.ts = ts
 	vehicle.dest = dest
+	vehicle.battLevel = 10.0
 		
 	host = station.ip
 	port = int(station.port)
@@ -333,7 +346,6 @@ def leaveStation(input):
 	vehicle.alt = selectedAlt
 	altitudes[vehicleID] = selectedAlt
 
-	#TODO: dont know if thats needed
 	msg = "left"
 	print "Sending message to " + host + ":" + str(port) + ": " + msg
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -342,3 +354,42 @@ def leaveStation(input):
 	s.close()
 
 	return selectedAlt
+
+
+
+	# http://serverIP:8080/Update?vid=1;lat=33.222;lon=444.55;alt=100;dest=blabla;plist=bla,bla;bat=123.456;ts=1305149006317 METHOD: GET (Response: SimpleResponse.xml)
+
+def update(input):
+	vid = input.vid
+	lat = input.lat
+	lon = input.lon
+	alt = input.alt
+	dest = input.dest
+	plist = input.plist
+	bat = input.bat
+	ts = long(input.ts)
+	
+	vehicle = activeVehicles.get(vid)
+	if(vehicle == None):
+		print "Vehicle " + input.vid + " not found. Rejecting request."
+		return -1
+
+	if(ts > vehicle.ts):
+		print "Received update for vehicle " + input.vid + ": lat: " + input.lat + " lon: " + input.lon + " alt: " + input.alt + " dest: " + input.dest + " plist: " + input.plist + " bat: " + input.bat + " ts: " + input.ts
+		vehicle.ts = ts
+		vehicle.dest = dest
+		vehicle.lat = lat
+		vehicle.lon = lon
+		vehicle.alt = alt
+		vehicle.bat = bat
+		if(plist != ""):
+			stillInVehicle = plist.split(",")
+			print "Parties " + str(stillInVehicle) + " still on vehicle."
+			for party in vehicle.parties[:]:
+				if(not party in stillInVehicle):
+					print "Party " + party + " is no longer in vehicle."
+					vehicle.parties.remove(party)
+		return 1
+	else:
+		print "Received old update for vehicle " + input.vid + ". Current ts: " + str(vehicle.ts) + " Update ts: " + input.ts
+		return 0
