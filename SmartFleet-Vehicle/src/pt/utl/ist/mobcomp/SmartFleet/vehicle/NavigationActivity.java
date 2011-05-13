@@ -32,6 +32,8 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 	List<StationInfo> activeStations;
 	SmartFleetOverlay vehiclesOverlay;
 	SmartFleetOverlay stationsOverlay;
+	SmartFleetOverlay crashedOverlay;
+	
 	String vehicleID;
 	String destination;
 	Location currDest;
@@ -106,11 +108,17 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 		marker = getResources().getDrawable(R.drawable.ship);
 		marker.setBounds(0, 0, marker.getIntrinsicWidth(), marker.getIntrinsicHeight());
 		vehiclesOverlay = new SmartFleetOverlay(marker);
-		vehiclesOverlay.update(getVehicleItem(position));
+		vehiclesOverlay.update(getVehicleItems(position));
+		
+		//Crashed overlay
+		marker = getResources().getDrawable(R.drawable.crashed);
+		marker.setBounds(0, 0, marker.getIntrinsicWidth(), marker.getIntrinsicHeight());
+		crashedOverlay = new SmartFleetOverlay(marker);
+		crashedOverlay.update(getCrashedItems(position));		
 		
 		map.getOverlays().add(stationsOverlay);
 		map.getOverlays().add(vehiclesOverlay);
-
+		map.getOverlays().add(crashedOverlay);
 	}
 	
 	@Override
@@ -166,7 +174,8 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 			//	returnToClosestStation()
 			//}
 		} else {
-			vehiclesOverlay.update(getVehicleItem(location));
+			vehiclesOverlay.update(getVehicleItems(location));
+			crashedOverlay.update(getCrashedItems(location));
 			map.getController().setCenter(getPoint(location));
 			
 			float distanceTo = location.distanceTo(currDest);
@@ -317,7 +326,7 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 		return list;
 	}
 	
-	private List<OverlayItem> getVehicleItem(Location location){
+	private List<OverlayItem> getVehicleItems(Location location){
 		List<OverlayItem> list = new LinkedList<OverlayItem>();
 		
 		list.add(new OverlayItem(getPoint(location), vehicleID,
@@ -328,6 +337,25 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 			for (String otherVID : new ArrayList<String>(manager.getInRange())) {
 				VehicleInfo info = manager.getLearnedVehicles().get(otherVID);
 				if(info.getLat() != null && info.getLon() != null){
+					lat = info.getLat();
+					lon = info.getLon();
+					list.add(new OverlayItem(getPoint(lat, lon), otherVID,
+							"Vehicle: " + otherVID + "\n"));
+				}
+			}
+		}
+	
+		return list;
+	}
+	
+	private List<OverlayItem> getCrashedItems(Location location){
+		List<OverlayItem> list = new LinkedList<OverlayItem>();
+		
+		if(manager.getInRange().size() > 0){
+			double lat, lon;
+			for (String otherVID : new ArrayList<String>(manager.getInRange())) {
+				VehicleInfo info = manager.getLearnedVehicles().get(otherVID);
+				if(info.getLat() != null && info.getLon() != null && info.getBat().equals(0)){
 					lat = info.getLat();
 					lon = info.getLon();
 					list.add(new OverlayItem(getPoint(lat, lon), otherVID,

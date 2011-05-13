@@ -339,8 +339,8 @@ def leaveStation(input):
 	port = int(station.port)
 
 	selectedAlt = 100
-	while(selectedAlt in altitudes.values() and selectedAlt < 200): #max altitude
-		selectedAlt += 100
+	#while(selectedAlt in altitudes.values() and selectedAlt < 500): #max altitude
+	#	selectedAlt += 100
 	
 	print "Selected altitude for vehicle " + vehicleID + " is " + str(selectedAlt)
 	vehicle.alt = selectedAlt
@@ -382,6 +382,10 @@ def update(input):
 		vehicle.lon = lon
 		vehicle.alt = alt
 		vehicle.bat = bat
+
+		if(float(bat) == 0.0):
+			print "Vehicle " + input.vid + " crashed!!"
+
 		if(plist != ""):
 			stillInVehicle = plist.split(",")
 			print "Parties " + str(stillInVehicle) + " still on vehicle."

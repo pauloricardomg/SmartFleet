@@ -165,12 +165,12 @@ public class Webservice implements Runnable {
 
 						Log.d("ServerActivityHERE", type);
 
-						handler.post(new Runnable() {
-							@Override
-							public void run() {
-								vehicleActivity.server_thread.setText("Received " + type);		
-							}
-						});
+//						handler.post(new Runnable() {
+//							@Override
+//							public void run() {
+//								vehicleActivity.server_thread.setText("Received " + type);		
+//							}
+//						});
 					}
 					//	break;
 				} catch (Exception e) {
