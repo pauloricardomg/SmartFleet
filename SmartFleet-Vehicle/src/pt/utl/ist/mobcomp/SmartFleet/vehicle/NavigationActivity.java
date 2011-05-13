@@ -12,7 +12,9 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Toast;
+import android.os.Handler;
 
 import com.google.android.maps.GeoPoint;
 import com.google.android.maps.ItemizedOverlay;
@@ -30,6 +32,9 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 	String vehicleID;
 	String destination;
 	Location currDest;
+	String pList;
+	String allPassengers;
+	String passengersNotForNextDest;
 
 	private LocationManager locationManager;
 
@@ -52,6 +57,9 @@ public class NavigationActivity extends MapActivity implements LocationListener 
         destination = extras.getString("destination");
         double lat = extras.getDouble("lat");
         double lon = extras.getDouble("lon");
+        pList = extras.getString("pList"); 
+        allPassengers = extras.getString("allPassengers");
+        passengersNotForNextDest = extras.getString("passengersNotForNextDest");
         
         currDest = new Location(LocationManager.GPS_PROVIDER);
         currDest.setLatitude(lat);
@@ -82,19 +90,47 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 	
 	@Override
 	public void onLocationChanged(Location location) {
-		List<String> parties;
 		if(VehicleActivity.getStation(location, activeStations) != null){
-			//RESUME VEHICLE ACTIVITY
-			Intent intent = new Intent();
-	    	setResult(RESULT_OK, intent);
-	        finish();
-	        
-		} if((parties = getPartiesOfDestination(location)) != null) {
+			
+			if(pList!= null)
+			{
+				Intent intent = new Intent(this, Arrival.class);
+				intent.putExtra("destination",destination);
+				intent.putExtra("passenger", pList );
+				intent.putExtra("station", true);
+				startActivityForResult(intent, 1);
+			}
+			
+			else
+			{
+				//Go back to station screen
+	            Intent intent1 = new Intent();
+		    	setResult(RESULT_OK, intent1);
+		        finish();
+			}
+			return;	
+		} 
+		Boolean reachedDestination = getPartiesOfDestination(location);
+	    if(reachedDestination) {
+			
+			if(pList!= null)
+			{
 			//MOVE TO ARRIVED AT DESTINATION ACTIVITY
+			Log.d("ScreenChange", "ARRIVAL SCREEN");
 			Intent intent = new Intent(this, Arrival.class);
 			intent.putExtra("destination",destination);
-			startActivityForResult(intent, 0);
+			intent.putExtra("passenger", pList );
+			intent.putExtra("station", false);
+			startActivityForResult(intent, 1);
+			}
 			
+			else
+			{
+				//Go back to station screen
+	            Intent intent1 = new Intent();
+		    	setResult(RESULT_OK, intent1);
+		        finish();
+			}
 			
 			//  Notify travelers to leave when arriving at destination
 			// drop parties, etc
@@ -108,8 +144,16 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 			vehiclesOverlay.update(getVehicleItem(location));
 			map.getController().setCenter(getPoint(location));
 			
-			float distanceTo = location.distanceTo(currDest);
-			Toast.makeText(NavigationActivity.this, "Distance to location: " + distanceTo + "Km",Toast.LENGTH_LONG);
+			final float distanceTo = location.distanceTo(currDest);
+			
+			/*new Handler().post(new Runnable() {
+				@Override
+				public void run() {
+					Toast.makeText(NavigationActivity.this,"Distance to location: " + distanceTo + "Km", Toast.LENGTH_LONG).show();		
+				}
+			}); */
+			
+			//Toast.makeText(NavigationActivity.this, "Distance to location: " + distanceTo + "Km",Toast.LENGTH_LONG);
 			//show.setText("Lat: " + String.valueOf(location.getLatitude()) + "Lon: " + String.valueOf(location.getLongitude()));
 			//still moving
 			// Display current position on map and expected time of arrival during flight	
@@ -117,11 +161,42 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 		}
 	}
 	
+	@Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Log.d("CheckStartActivity","onActivityResult and resultCode = "+resultCode);
+        // TODO Auto-generated method stub
+        super.onActivityResult(requestCode, resultCode, data);
+        if(resultCode==1){
+            Toast.makeText(this, "Destination is a Station", Toast.LENGTH_LONG).show();
+            
+            //Go back to station screen
+            Intent intent1 = new Intent();
+	    	setResult(RESULT_OK, intent1);
+	        finish();
+	        
+        }
+        else{
+        	//stay on navigation screen! but we just go back to the main screen and call a different method
+            Toast.makeText(this, "Destination not a station", Toast.LENGTH_LONG).show();
+            Intent intent1 = new Intent();
+	    	setResult(RESULT_OK, intent1);
+	        finish();
+        }
+    }
+
 	
-	//TODO: Implement this method
-	private List<String> getPartiesOfDestination(Location location) {
+	private Boolean getPartiesOfDestination(Location location) {
 		// TODO Auto-generated method stub
-		return null;
+		if(location.distanceTo(currDest) < 100) //TODO: Change it to 10m.
+		{
+			return true;
+		/*if (pList!= null && pList.length() > 0)
+			return true;
+		else
+			return false;*/
+		}
+		else
+			return false;
 	}
 
 	/* Request updates at startup */

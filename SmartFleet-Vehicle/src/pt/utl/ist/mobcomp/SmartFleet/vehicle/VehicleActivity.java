@@ -134,7 +134,7 @@ public class VehicleActivity extends Activity implements LocationListener{
 		if(activeStations != null){
 	    	for (StationInfo station : activeStations) {
 				Location stationLocation = station.getLocation();
-				if(stationLocation != null && location.distanceTo(stationLocation) < 0.2){
+				if(stationLocation != null && location.distanceTo(stationLocation) < 100){ //TODO: Change later 
 					return station;
 				}
 			}
@@ -147,7 +147,7 @@ public class VehicleActivity extends Activity implements LocationListener{
 	@Override
 	public void onLocationChanged(Location location) {
 		if(activeStations != null){
-			show.setText("Distance: " + location.distanceTo(activeStations.get(0).getLocation()));
+			//show.setText("Distance: " + location.distanceTo(activeStations.get(0).getLocation()));
 		}
 		StationInfo station;
 		if((station = getStation(location, activeStations)) != null){
@@ -175,13 +175,110 @@ public class VehicleActivity extends Activity implements LocationListener{
 	}
 	
 	
+public void arrivedAtDestNotStation() {
+		
+	    ProgressDialog diag = ProgressDialog.show(VehicleActivity.this, "", "Calculating next Destination..", true);
+		
+		atStation = false;
+		//show.setText("Vehicle arrived at station: " + station.getName());
+		
+		//TODO: when a vehicle arrives at a  transportation station, it takes communicates with 			
+		// the central server to indicate its state, information about other vehicles that it 			
+		//learned along the way and about any missing vehicles it may have found
+		
+		// Also disembark passengers for this destination upon Arrival
+		disembarkPassengers();
+		
+		//then set alt 0;
+		while(alt > 0){
+			lowerAltitude();
+		}
+		
+		//choose next destination from among the destinations for passengers
+		Boolean nextDest =selectNextDest();
+
+		if(nextDest){
+			
+			diag.setMessage("Preparing to go to "+ this.destination);
+			
+		//Update this.passengerlist for the selected destination. Will be used to notify on arrival
+		updatePartyForNextDest();
+		
+		//raise altitude to 100m and start moving
+		raiseAltitude();
+		
+		diag.cancel();
+		
+		String url, response=null;
+		//Move to the destination
+		try{
+			url = String.format("http://" + this.serverIP + ":" + this.gpsPort + "/MoveTo?vehicleID=" + 
+					this.id + ";lat=" +  this.destLat + ";lon=" + this.destLon );
+			response = contact_server(url);
+		}catch(Exception e){
+			System.out.println("Exception here: "+ e.getMessage());
+		}
+		
+		}
+		
+		else    // go back to first station
+		{
+			diag.setMessage("No passsengers in vehicle. Moving to Station: "+activeStations.get(0).getName() );
+			
+			String lat =activeStations.get(0).getLat();
+			String lon = activeStations.get(0).getLon();
+			
+			destLat = Double.parseDouble(lat);
+			destLon = Double.parseDouble(lon);
+			this.destination = activeStations.get(0).getName();
+			
+			//Update this.passengerlist for the selected destination. Will be used to notify on arrival
+			updatePartyForNextDest();
+
+			raiseAltitude();
+				
+			diag.cancel();
+			
+			String url, response=null;
+			//Move to the destination
+			try{
+				url = String.format("http://" + this.serverIP + ":" + this.gpsPort + "/MoveTo?vehicleID=" + 
+						this.id + ";lat=" +  lat + ";lon=" + lon );
+				response = contact_server(url);
+			}catch(Exception e){
+				System.out.println("Exception here: "+ e.getMessage());
+			}
+			
+		}
+		
+		
+	//	dialog = ProgressDialog.show(VehicleActivity.this, "", "Contacting station " + station.getName() + " for passengers. Please wait...", true);
+		
+	//	new WaitPartiesFromStation().execute(station);
+//		atStation = true;
+//		show.setText("Vehicle arrived at station: " + station.getName());
+//		
+//		//TODO: when a vehicle arrives at a  transportation station, it takes communicates with 			
+//		// the central server to indicate its state, information about other vehicles that it 			
+//		//learned along the way and about any missing vehicles it may have found
+//		
+//		// Also disembark passengers for this destination upon Arrival
+//		disembarkPassengers();
+//		
+//		//then set alt 0;
+//		while(this.alt > 0){
+//			lowerAltitude();
+//		}
+//		
+//		ProgressDialog dialog = ProgressDialog.show(VehicleActivity.this, "", "Contacting station " + station.getName() + " for passengers. Please wait...", true);
+	}
 	
 	
 	public void arrivedAtStation(StationInfo station) {
 		
 		
 		atStation = true;
-		show.setText("Vehicle arrived at station: " + station.getName());
+	//	show.setText("Vehicle arrived at station: " + station.getName());
 		
 		//TODO: when a vehicle arrives at a  transportation station, it takes communicates with 			
 		// the central server to indicate its state, information about other vehicles that it 			
@@ -326,6 +423,7 @@ public class VehicleActivity extends Activity implements LocationListener{
 
 	public void updatePartyForNextDest()
 	{
+		this.passengerList = null;
 		for (int i=0; i< passengersForDest.size(); i++)
         {
                 if(passengersForDest.get(i).getDestination().compareTo(this.destination) == 0 )
@@ -336,6 +434,23 @@ public class VehicleActivity extends Activity implements LocationListener{
                 		this.passengerList.concat(","+passengersForDest.get(i).getName());
                 }
         }
+	}
+	
+	public String getPassengersNotForNextDest()
+	{
+		String passengersNotForNextDest=null;
+		for (int i=0; i< passengersForDest.size(); i++)
+        {
+                if(passengersForDest.get(i).getDestination().compareTo(this.destination) != 0 )
+                {
+                	if(passengersNotForNextDest == null)
+                		passengersNotForNextDest = passengersForDest.get(i).getName();
+                	else
+                		passengersNotForNextDest.concat(","+passengersForDest.get(i).getName());
+                }
+        }
+		
+		return passengersNotForNextDest;
 	}
 
 	public String getPassengersInVehicle()
@@ -352,14 +467,20 @@ public class VehicleActivity extends Activity implements LocationListener{
 	}
 	
 	
-	public void selectNextDest()
+	public Boolean selectNextDest()
 	{
 		//TODO: move to the closest Dest. 
-		
+		if (passengersForDest.size()>0)
+		{
 		//For now move to the first Dest
 		destination = passengersForDest.get(0).getDestination();
 		destLat =  new Double(passengersForDest.get(0).getLat());
 		destLon =  new Double(passengersForDest.get(0).getLon());
+		return true;
+		}
+		
+		else 
+			return false; 
 	}
 	
 	
@@ -381,13 +502,18 @@ public class VehicleActivity extends Activity implements LocationListener{
 	protected void onResume() {
 		super.onResume();
 		
-//		Location actualLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-//		if(actualLocation != null){
-//			StationInfo station = getStation(actualLocation, activeStations);
-//			if(station != null && !atStation){
-//				arrivedAtStation(station);
-//			}
-//		}
+		Location actualLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+		if(actualLocation != null){
+			StationInfo station = getStation(actualLocation, activeStations);
+			if(station != null && !atStation){
+				arrivedAtStation(station);
+			}
+			
+			else {
+			
+				arrivedAtDestNotStation();
+			}
+		}
 		
 		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 400, 1, this);
 	}
@@ -405,7 +531,7 @@ public class VehicleActivity extends Activity implements LocationListener{
 			e.printStackTrace();
 		}
 		engine.stop();
-		System.out.println("ONDESTROY");
+		System.out.println(" ONDESTROY ");
 	}
 
 	/* Remove the locationlistener updates when Activity is paused */
@@ -506,7 +632,12 @@ public void showNavigationScreen(Location location){
 	intent.putExtra("position", location);
 	intent.putExtra("destination", destination);
 	intent.putExtra("lat", destLat);
-	intent.putExtra("lon", destLat);
+	intent.putExtra("lon", destLon);
+	intent.putExtra("pList", passengerList);
+	String allPassengers= getPassengersInVehicle();
+	intent.putExtra("allPassengers",allPassengers);
+	String passengersNotForNextDest =getPassengersNotForNextDest();
+	intent.putExtra("passengersNotForNextDest",passengersNotForNextDest);
 	startActivityForResult(intent, 0);
 }
 
@@ -539,7 +670,8 @@ private void register_vehicle(){
 	
 	if (status == "SUCCESS"){
 		show.setText("Vehicle Registration Success!!");
-	} else if (status == "FAIL")
+	}
+	else if (status == "FAIL")
 		show.setText("Vehicle already registered!");
 	else
 		show.setText("Vehicle registration request timed out!! Please relaunch");

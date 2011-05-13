@@ -168,7 +168,7 @@ def move(vehicle, lat, lon):
 	vehicle.batt = 1
 	while(vehicle.batt and vehicle.moving and vehicle.lat != lat and vehicle.lon != lon):
 		brng = rhumbBearingTo(vehicle.lat, vehicle.lon, lat, lon)
-		newPos = rhumbDestinationPoint(vehicle.lat, vehicle.lon, brng, 0.01) # 10 meters per second
+		newPos = rhumbDestinationPoint(vehicle.lat, vehicle.lon, brng, 0.10) # 100 meters per second
 		
 		if(newPos[0] == oldLat or oldLat == lat):
 			oldLat = vehicle.lat
