@@ -135,7 +135,7 @@ public class VehicleActivity extends Activity implements LocationListener{
 	    	for (StationInfo station : activeStations) {
 				Location stationLocation = station.getLocation();
 				float distance = location.distanceTo(stationLocation);
-				if(stationLocation != null && location.distanceTo(stationLocation) < 100){ //TODO: Change later 
+				if(stationLocation != null && location.distanceTo(stationLocation) < 10){ //TODO: Change later 
 					return station;
 				}
 			}
@@ -259,28 +259,7 @@ public void arrivedAtDestNotStation() {
 			}
 			
 		}
-		
-		
-	//	dialog = ProgressDialog.show(VehicleActivity.this, "", "Contacting station " + station.getName() + " for passengers. Please wait...", true);
-		
-	//	new WaitPartiesFromStation().execute(station);
-//		atStation = true;
-//		show.setText("Vehicle arrived at station: " + station.getName());
-//		
-//		//TODO: when a vehicle arrives at a  transportation station, it takes communicates with 			
-//		// the central server to indicate its state, information about other vehicles that it 			
-//		//learned along the way and about any missing vehicles it may have found
-//		
-//		// Also disembark passengers for this destination upon Arrival
-//		disembarkPassengers();
-//		
-//		//then set alt 0;
-//		while(this.alt > 0){
-//			lowerAltitude();
-//		}
-//		
-//		ProgressDialog dialog = ProgressDialog.show(VehicleActivity.this, "", "Contacting station " + station.getName() + " for passengers. Please wait...", true);
-	}
+		}
 	
 
     public int closestStation(Location currLocation)
@@ -316,13 +295,8 @@ public void arrivedAtDestNotStation() {
 		
 		
 		atStation =true;
-	//	show.setText("Vehicle arrived at station: " + station.getName());
-		
-		//TODO: when a vehicle arrives at a  transportation station, it takes communicates with 			
-		// the central server to indicate its state, information about other vehicles that it 			
-		//learned along the way and about any missing vehicles it may have found
-		
-		// Also disembark passengers for this destination upon Arrival
+		show.setText("Vehicle arrived at station: " + station.getName());
+
 		disembarkPassengers();
 		
 		//then set alt 0;
@@ -333,23 +307,7 @@ public void arrivedAtDestNotStation() {
 		dialog = ProgressDialog.show(VehicleActivity.this, "", "Contacting station " + station.getName() + " for passengers. Please wait...", true);
 		
 		new WaitPartiesFromStation().execute(station);
-//		atStation = true;
-//		show.setText("Vehicle arrived at station: " + station.getName());
-//		
-//		//TODO: when a vehicle arrives at a  transportation station, it takes communicates with 			
-//		// the central server to indicate its state, information about other vehicles that it 			
-//		//learned along the way and about any missing vehicles it may have found
-//		
-//		// Also disembark passengers for this destination upon Arrival
-//		disembarkPassengers();
-//		
-//		//then set alt 0;
-//		while(this.alt > 0){
-//			lowerAltitude();
-//		}
-//		
-//		ProgressDialog dialog = ProgressDialog.show(VehicleActivity.this, "", "Contacting station " + station.getName() + " for passengers. Please wait...", true);
-	}
+}
 	
 	public void leaveStation(StationInfo station){
 		

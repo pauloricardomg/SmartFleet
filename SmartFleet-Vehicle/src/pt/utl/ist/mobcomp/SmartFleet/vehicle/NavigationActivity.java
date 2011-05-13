@@ -220,7 +220,7 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 	
 	private Boolean getPartiesOfDestination(Location location) {
 		// TODO Auto-generated method stub
-		if(location.distanceTo(currDest) < 100) //TODO: Change it to 10m.
+		if(location.distanceTo(currDest) < VEHICLE_SPEED) //TODO: Change it to 10m.
 		{
 			return true;
 		/*if (pList!= null && pList.length() > 0)
