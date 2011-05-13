@@ -63,6 +63,7 @@ public class VehicleActivity extends Activity implements LocationListener{
 	String destination;
 	String passengerList;
 	double battery;
+	boolean flag;
 	
 	List<PartyInfo> passengersForDest;
 	
@@ -107,6 +108,7 @@ public class VehicleActivity extends Activity implements LocationListener{
         wpname = (EditText) this.findViewById(R.id.wpname);
         wbat = (EditText) this.findViewById(R.id.wbat);
         
+        flag = false;
         
         //Try to register vehicle.
         register_vehicle();
@@ -132,6 +134,7 @@ public class VehicleActivity extends Activity implements LocationListener{
 		if(activeStations != null){
 	    	for (StationInfo station : activeStations) {
 				Location stationLocation = station.getLocation();
+				float distance = location.distanceTo(stationLocation);
 				if(stationLocation != null && location.distanceTo(stationLocation) < 100){ //TODO: Change later 
 					return station;
 				}
@@ -223,12 +226,20 @@ public void arrivedAtDestNotStation() {
 		{
 			diag.setMessage("No passsengers in vehicle. Moving to Station: "+activeStations.get(0).getName() );
 			
-			String lat =activeStations.get(0).getLat();
-			String lon = activeStations.get(0).getLon();
+			Location currLocation = new Location(LocationManager.GPS_PROVIDER);
+			currLocation.setLatitude(this.destLat);
+			currLocation.setLongitude(this.destLon);
 			
+			int position = closestStation(currLocation);
+			
+			
+			String lat =activeStations.get(position).getLat();
+			String lon = activeStations.get(position).getLon();
+
 			destLat = Double.parseDouble(lat);
 			destLon = Double.parseDouble(lon);
-			this.destination = activeStations.get(0).getName();
+			destination = activeStations.get(position).getName();
+
 			
 			//Update this.passengerlist for the selected destination. Will be used to notify on arrival
 			updatePartyForNextDest();
@@ -244,7 +255,7 @@ public void arrivedAtDestNotStation() {
 						this.id + ";lat=" +  lat + ";lon=" + lon );
 				response = contact_server(url);
 			}catch(Exception e){
-				System.out.println("Exception here: "+ e.getMessage());
+				System.out.println("Exception here:"+ e.getMessage());
 			}
 			
 		}
@@ -271,11 +282,40 @@ public void arrivedAtDestNotStation() {
 //		ProgressDialog dialog = ProgressDialog.show(VehicleActivity.this, "", "Contacting station " + station.getName() + " for passengers. Please wait...", true);
 	}
 	
+
+    public int closestStation(Location currLocation)
+    {
+    	Location destLocation = new Location(LocationManager.GPS_PROVIDER);
+    	float min = Float.MAX_VALUE;
+		int position = 0;
+		
+		for (int i=0;i<activeStations.size();i++){
+
+			String lat =activeStations.get(i).getLat();
+			String lon = activeStations.get(i).getLon();
+
+			destLat = Double.parseDouble(lat);
+			destLon = Double.parseDouble(lon);
+			destination = activeStations.get(i).getName();
+
+			destLocation.setLatitude(destLat);
+			destLocation.setLongitude(destLon);
+
+			if (currLocation.distanceTo(destLocation) < min)
+			{
+				min = currLocation.distanceTo(destLocation);
+				position = i;
+			}
+
+		}
+		
+		return position;
+    }
 	
 	public void arrivedAtStation(StationInfo station) {
 		
 		
-		atStation = true;
+		atStation =true;
 	//	show.setText("Vehicle arrived at station: " + station.getName());
 		
 		//TODO: when a vehicle arrives at a  transportation station, it takes communicates with 			
@@ -431,10 +471,11 @@ public void arrivedAtDestNotStation() {
 				arrivedAtStation(station);
 			}
 			
-			else {
+			else if(this.flag) {
 			
 				arrivedAtDestNotStation();
 			}
+			flag =true; //Worst hack ever!!
 		}
 		
 		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 400, 1, this);

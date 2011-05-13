@@ -83,7 +83,7 @@ public class NavigationActivity extends MapActivity implements LocationListener 
         allPassengers = extras.getString("allPassengers");
         passengersNotForNextDest = extras.getString("passengersNotForNextDest");
         
-		textPart.setText("Parties: " + this.pList);
+		textPart.setText("Parties: " + this.allPassengers == null? "None" : this.allPassengers);
         textDest.setText("Destination: " + destination);
         
         currDest = new Location(LocationManager.GPS_PROVIDER);
