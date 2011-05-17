@@ -336,11 +336,12 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 			double lat, lon;
 			for (String otherVID : new ArrayList<String>(manager.getInRange())) {
 				VehicleInfo info = manager.getLearnedVehicles().get(otherVID);
-				if(info.getLat() != null && info.getLon() != null){
+				if(info.getLat() != null && info.getLon() != null && !info.getBat().equals(0.0)){
 					lat = info.getLat();
 					lon = info.getLon();
 					list.add(new OverlayItem(getPoint(lat, lon), otherVID,
-							"Vehicle: " + otherVID + "\n"));
+							"Vehicle: " + otherVID + "" +
+							"Battery: " + info.getBat() + "\n"));
 				}
 			}
 		}
@@ -355,11 +356,12 @@ public class NavigationActivity extends MapActivity implements LocationListener 
 			double lat, lon;
 			for (String otherVID : new ArrayList<String>(manager.getInRange())) {
 				VehicleInfo info = manager.getLearnedVehicles().get(otherVID);
-				if(info.getLat() != null && info.getLon() != null && info.getBat().equals(0)){
+				if(info.getLat() != null && info.getLon() != null && info.getBat().equals(0.0)){
 					lat = info.getLat();
 					lon = info.getLon();
 					list.add(new OverlayItem(getPoint(lat, lon), otherVID,
-							"Vehicle: " + otherVID + "\n"));
+							"Vehicle: " + otherVID + "" +
+							"Battery: " + info.getBat() + "\n"));
 				}
 			}
 		}

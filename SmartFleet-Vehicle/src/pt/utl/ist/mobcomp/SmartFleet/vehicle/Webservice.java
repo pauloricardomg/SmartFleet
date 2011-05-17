@@ -79,12 +79,12 @@ public class Webservice implements Runnable {
 							if (info != null)
 							{
 								Log.d("RecvWarn", myvID +" "+otherVehicleID);
-//								handler.post(new Runnable() {
-//									@Override
-//									public void run() {
-//										Toast.makeText(displayUI,"Vehicle "+ myvID+"RECEIVED warn", Toast.LENGTH_LONG).show();		
-//									}
-//								});
+								handler.post(new Runnable() {
+									@Override
+									public void run() {
+										Toast.makeText(vehicleActivity,"Vehicle "+ myvID+" received warn", Toast.LENGTH_LONG).show();		
+									}
+								});
 								
 								Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
 								double lon = location.getLongitude();
@@ -146,6 +146,14 @@ public class Webservice implements Runnable {
 										}
 									});
 									battMan.raiseAltitude();
+								} else {
+									//Log.d("RecvWarn", "Change Altitude");
+									handler.post(new Runnable() {
+										@Override
+										public void run() {
+											Toast.makeText(vehicleActivity,"Vehicle " + otherVehicleID + " was too close and moved up 100 mts", Toast.LENGTH_LONG).show();		
+										}
+									});
 								}
 							}
 

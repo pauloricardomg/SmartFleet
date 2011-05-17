@@ -248,7 +248,9 @@ public class MonitoringActivity extends MapActivity {
 		
 		if(infos != null){
 			for (VehicleInfo info : infos) {
-				list.add(getVehicleOverlayItem(info));
+				if(info.getBattLevel() != 0){
+					list.add(getVehicleOverlayItem(info));
+				}
 			}
 		}
 	
@@ -265,6 +267,8 @@ public class MonitoringActivity extends MapActivity {
 				"Last contact: " + (System.currentTimeMillis()-info.getLastUpdate())/1000 + "s \n" +
 				"Battery Level: " + info.getBattLevel() + "W");
 	}
+	
+	
 	
 	private List<OverlayItem> getCrashedVehicleItems(List<VehicleInfo> infos){
 		List<OverlayItem> list = new LinkedList<OverlayItem>();

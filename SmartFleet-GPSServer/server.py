@@ -69,8 +69,8 @@ class Vehicle:
 		    self.ip = ip
 		    self.port = port
 		    self.emulatorPort = emulatorPort
-		    self.inRange = []
-		    self.close = []
+		    self.inRange = set()
+		    self.close = set()
 		    self.moving = 0
 		    self.batt = 0
 
@@ -197,31 +197,40 @@ def move(vehicle, lat, lon):
 				d = distanceBetweenPoints(vehicle.lat, vehicle.lon, vehicle.alt, other.lat, other.lon, other.alt)
 				#print("distance between " + vehicle.id + " and " + other.id + ": " + str(d)) 
 				
-				inRange = (other.id in vehicle.inRange)
-				close = (other.id in vehicle.close)
+				#inRange = (other.id in vehicle.inRange)
+				#close = (other.id in vehicle.close)
 	
 				if(d >= 0.3):
-					if(inRange):
+					if(other.id in vehicle.inRange):
 						print "Distance between vehicles " + vehicle.id + " and " + other.id + " is higher than 300m. D=" + str(d) + "."
 						vehicle.inRange.remove(other.id)
+						other.inRange.remove(vehicle.id)
 						sendMessage(vehicle,"outrange;"+other.id)
-					if(close):
+						sendMessage(other,"outrange;"+vehicle.id)
+					if(other.id in vehicle.close):
 						print "Distance between vehicles " + vehicle.id + " and " + other.id + " is higher than 200m. D=" + str(d) + "."
 						vehicle.close.remove(other.id)
+						other.close.remove(vehicle.id)
 				else:
-					if(not inRange):
+					if(not other.id in vehicle.inRange):
 						print "Distance between vehicles " + vehicle.id + " and " + other.id + " is lower than 300m. D=" + str(d) + "."
-						vehicle.inRange.append(other.id)
+						vehicle.inRange.add(other.id)
+						other.inRange.add(vehicle.id)
 						sendMessage(vehicle,"inrange;"+other.id+";"+other.ip+";"+str(other.port))
+						sendMessage(other,"inrange;"+vehicle.id+";"+vehicle.ip+";"+str(vehicle.port))
 					if(d >= 0.2):
-						if(close):
+						if(other.id in vehicle.close):
 							print "Distance between vehicles " + vehicle.id + " and " + other.id + " is higher than 200m and lower than 300m. D=" + str(d) + "."
 							vehicle.close.remove(other.id)
+							other.close.remove(vehicle.id)
 					else:
-						if(not close):
+						if(not other.id in vehicle.close):
 							print "Distance between vehicles " + vehicle.id + " and " + other.id + " is lower than 200m. D=" + str(d) + "."
-							vehicle.close.append(other.id)
+							vehicle.close.add(other.id)
 							sendMessage(vehicle,"warn;"+other.id)
+							other.close.add(vehicle.id)
+							sendMessage(other,"warn;"+vehicle.id)
+
 
 	if(vehicle.lat == lat and vehicle.lon == lon):
 		vehicle.moving = 0
