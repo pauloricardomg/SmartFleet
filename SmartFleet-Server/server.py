@@ -2,6 +2,7 @@ import web
 import socket
 import time
 from collections import namedtuple
+import shelve
 
 ''' ####################  '''
 ''' Web Service Handling  '''
@@ -70,8 +71,22 @@ class Update:
         return render.SimpleResponse(result)
 
 
+# Server data structures
+
+activeStations = shelve.open('stations.db',writeback=True)
+activeVehicles = shelve.open('vehicles.db',writeback=True)
+
+altitudes = {}
+
+
+
 web.webapi.internalerror = web.debugerror
-if __name__ == '__main__': app.run()
+if __name__ == '__main__':
+	#activeStations = shelve.open('stations.db',writeback=True)
+	#activeVehicles = shelve.open('vehicles.db',writeback=True)
+	app.run()
+	activeStations.close()
+	activeVehicles.close()
 
 
 ''' ################### '''
@@ -153,14 +168,6 @@ class Station:
 
 		return self.id == other.id
 
-# Server data structures
-
-activeStations = {}
-
-activeVehicles = {}
-
-altitudes = {}
-
 # Server interface
 
 def getAllStations():
@@ -178,7 +185,7 @@ def getAllVehicles():
 	return result
 
 def registerVehicle(input):
-	vehicleID = input.id
+	vehicleID = str(input.id)
 	capacity = input.capacity
 	lat = input.lat
 	lon = input.lon
@@ -192,7 +199,7 @@ def registerVehicle(input):
 
 
 def registerStation(input):
-	stationID = input.id
+	stationID = str(input.id)
 	stationName = input.name
 	stationIP = input.ip
 	stationPort = input.port
@@ -212,7 +219,7 @@ def registerStation(input):
 	return 1
 
 def registerParty(input):
-	stationID = input.stationID
+	stationID = str(input.stationID)
 	partyName = input.partyName
 	numPassengers = input.numPassengers
 	destination = input.dest
@@ -239,8 +246,8 @@ def registerParty(input):
 	return 1
 
 def arrivedAtStation(input):
-	vehicleID = input.vehicleID
-	stationID = input.stationID
+	vehicleID = str(input.vehicleID)
+	stationID = str(input.stationID)
 	freeSeats = int(input.freeSeats)
 	ts = long(input.ts)
 	print "Vehicle " + vehicleID + " arrived at station " + stationID + " with " + str(freeSeats) + " free seats. TS=" + input.ts
@@ -256,7 +263,7 @@ def arrivedAtStation(input):
 
 	vehicle = activeVehicles.get(vehicleID)
 	if(vehicle == None):
-		print "Vehicle " + input.stationID + " not found. Rejecting request."
+		print "Vehicle " + input.vehicleID + " not found. Rejecting request."
 		return []
 
 	if(vehicle.id not in station.vehicles):
@@ -313,8 +320,8 @@ def arrivedAtStation(input):
 
 
 def leaveStation(input):
-	vehicleID = input.vehicleID
-	stationID = input.stationID
+	vehicleID = str(input.vehicleID)
+	stationID = str(input.stationID)
 	dest = input.dest
 	ts = long(input.ts)
 	print "Vehicle " + vehicleID + " left  station " + stationID + " to destination " + dest + ". TS=" + input.ts
@@ -326,7 +333,7 @@ def leaveStation(input):
 
 	vehicle = activeVehicles.get(vehicleID)
 	if(vehicle == None):
-		print "Vehicle " + input.stationID + " not found. Rejecting request."
+		print "Vehicle " + input.vehicleID + " not found. Rejecting request."
 		return -1
 
 	station.vehicles.remove(vehicleID)
@@ -360,7 +367,7 @@ def leaveStation(input):
 	# http://serverIP:8080/Update?vid=1;lat=33.222;lon=444.55;alt=100;dest=blabla;plist=bla,bla;bat=123.456;ts=1305149006317 METHOD: GET (Response: SimpleResponse.xml)
 
 def update(input):
-	vid = input.vid
+	vid = str(input.vid)
 	lat = input.lat
 	lon = input.lon
 	alt = input.alt

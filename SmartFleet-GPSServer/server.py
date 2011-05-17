@@ -3,6 +3,7 @@ import socket
 import time
 from threading import Thread
 from math import *
+import shelve
 
 
 ''' ####################  '''
@@ -170,7 +171,7 @@ def move(vehicle, lat, lon):
 	vehicle.batt = 1
 	while(vehicle.batt and vehicle.moving and vehicle.lat != lat and vehicle.lon != lon):
 		brng = rhumbBearingTo(vehicle.lat, vehicle.lon, lat, lon)
-		newPos = rhumbDestinationPoint(vehicle.lat, vehicle.lon, brng, 0.10) # 100 meters per second
+		newPos = rhumbDestinationPoint(vehicle.lat, vehicle.lon, brng, 0.01) # 10 meters per second
 		
 		if(newPos[0] == oldLat or oldLat == lat):
 			oldLat = vehicle.lat
@@ -186,7 +187,7 @@ def move(vehicle, lat, lon):
 			oldLon = vehicle.lon
 			vehicle.lon = newPos[1]
 
-		print "Sending geo fix " + str(vehicle.lon) + " " + str(vehicle.lat) + " of vehicle " + vehicle.id + " to port " + str(vehicle.emulatorPort)
+		#print "Sending geo fix " + str(vehicle.lon) + " " + str(vehicle.lat) + " of vehicle " + vehicle.id + " to port " + str(vehicle.emulatorPort)
 		s.send("geo fix " + str(vehicle.lon) + " " + str(vehicle.lat) + "\n")
 
 		time.sleep(1)
@@ -222,10 +223,12 @@ def move(vehicle, lat, lon):
 							vehicle.close.append(other.id)
 							sendMessage(vehicle,"warn;"+other.id)
 
-
-	vehicle.moving = 0
-	vehicle.battery = 0
-	print "Vehicle " + vehicle.id + " finished moving to  lat:"  + str(lat) + ", lon:" + str(lon) + " . Closing connection."
+	if(vehicle.lat == lat and vehicle.lon == lon):
+		vehicle.moving = 0
+		vehicle.battery = 0
+		print "Vehicle " + vehicle.id + " finished moving to  lat:"  + str(lat) + ", lon:" + str(lon) + " . Closing connection."
+	else:
+		print "Vehicle " + vehicle.id + " stoped moving."
 
 	s.close()
 
