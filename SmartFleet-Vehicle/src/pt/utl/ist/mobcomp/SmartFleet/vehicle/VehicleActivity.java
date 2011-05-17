@@ -53,6 +53,7 @@ public class VehicleActivity extends Activity implements LocationListener{
 	String serverPort;
 	String myIp;
 	String myPort;
+	String gpsIP;
 	String gpsPort;
 	String emulatorPort;
 	String capacity;
@@ -86,6 +87,7 @@ public class VehicleActivity extends Activity implements LocationListener{
 		initialLon = prop.getProperty("lon");
 		serverIP = prop.getProperty("server_ip");
 		serverPort = prop.getProperty("server_port");
+		gpsIP = prop.getProperty("gps_server_ip");
 		gpsPort = prop.getProperty("gps_server_port");
 		emulatorPort = prop.getProperty("emulator_port");
 		capacity = prop.getProperty("capacity");
@@ -93,7 +95,7 @@ public class VehicleActivity extends Activity implements LocationListener{
 		myPort = prop.getProperty("vehicle_port");
         atStation = false;
 		
-        battMan = BatteryManager.createInstance(serverIP, gpsPort, id);
+        battMan = BatteryManager.createInstance(gpsIP, gpsPort, id);
         
         destination = "";
         dialog = null;
@@ -175,6 +177,9 @@ public class VehicleActivity extends Activity implements LocationListener{
 		return "http://" + serverIP + ":" + serverPort;
 	}
 	
+	private String getGpsServerAddress() {
+		return "http://" + this.gpsIP + ":" + this.gpsPort;
+	}
 	
 public void arrivedAtDestNotStation() {
 		
@@ -213,7 +218,7 @@ public void arrivedAtDestNotStation() {
 		String url, response=null;
 		//Move to the destination
 		try{
-			url = String.format("http://" + this.serverIP + ":" + this.gpsPort + "/MoveTo?vehicleID=" + 
+			url = String.format("http://" + this.gpsIP + ":" + this.gpsPort + "/MoveTo?vehicleID=" + 
 					this.id + ";lat=" +  this.destLat + ";lon=" + this.destLon );
 			response = contact_server(url);
 		}catch(Exception e){
@@ -251,7 +256,7 @@ public void arrivedAtDestNotStation() {
 			String url, response=null;
 			//Move to the destination
 			try{
-				url = String.format("http://" + this.serverIP + ":" + this.gpsPort + "/MoveTo?vehicleID=" + 
+				url = String.format("http://" + this.gpsIP + ":" + this.gpsPort + "/MoveTo?vehicleID=" + 
 						this.id + ";lat=" +  lat + ";lon=" + lon );
 				response = contact_server(url);
 			}catch(Exception e){
@@ -332,7 +337,7 @@ public void arrivedAtDestNotStation() {
 		
 		//Move to the destination
 		try{
-			url = String.format("http://" + serverIP + ":" + gpsPort + "/MoveTo?vehicleID=" + 
+			url = String.format("http://" + gpsIP + ":" + gpsPort + "/MoveTo?vehicleID=" + 
 					id + ";lat=" +  destLat + ";lon=" + destLon );
 			response = contact_server(url);
 		}catch(Exception e){
@@ -567,7 +572,7 @@ private void register_vehicle(){
 
 	//REGISTER VEHICLE ON GPS SERVER (maybe this will be bundled with central server, but for now a separate server)
 	try{
-		url = String.format("http://" + this.serverIP + ":" + this.gpsPort + "/RegisterVehicle?id=" + 
+		url = String.format("http://" + this.gpsIP + ":" + this.gpsPort + "/RegisterVehicle?id=" + 
 				this.id + ";lat=" +  this.initialLat + ";lon=" + this.initialLon + ";ip=" + myIp +
 				";port=" + myPort + ";emulatorPort=" + emulatorPort);
 		response = contact_server(url);
@@ -675,7 +680,7 @@ class WaitPartiesFromStation extends AsyncTask<StationInfo, String, Boolean> {
 		try{
 			for (VehicleInfo inf : VehicleManager.getInstance().getLearnedVehicles().values()) {
 				if(inf.getLat() != null){
-					url = String.format(getServerAddress() + "/Update?vid=" + inf.getvID() + ";lat=" + inf.getLat() + 
+					url = String.format(getGpsServerAddress() + "/Update?vid=" + inf.getvID() + ";lat=" + inf.getLat() + 
 							";lon=" + inf.getLon() + ";alt=" + inf.getAlt() + ";dest=" + inf.getDest() + 
 							";plist=" + inf.getpList() + ";bat=" + inf.getBat() + ";ts=" + inf.getTime());	
 					contact_server(url);

@@ -86,7 +86,7 @@ public class BatteryManager {
 	public synchronized void lowerAltitude(){
 		alt = Math.max(0, alt-100);
 		try{
-			String url = String.format("http://" + this.serverIP + ":" + this.gpsPort + "/ChangeAltitude?vehicleID=" + 
+			String url = String.format("http://" + this + ":" + this.gpsPort + "/ChangeAltitude?vehicleID=" + 
 					this.myId + ";alt=" +  this.alt);
 			VehicleActivity.contact_server(url);
 		}catch(Exception e){
