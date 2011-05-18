@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
@@ -356,7 +357,7 @@ public void arrivedAtDestNotStation() {
                 	if(this.passengerList == null)
                 		this.passengerList = passengersForDest.get(i).getName();
                 	else
-                		this.passengerList.concat(","+passengersForDest.get(i).getName());
+                		this.passengerList = passengerList.concat(","+passengersForDest.get(i).getName());
                 }
         }
 	}
@@ -371,7 +372,7 @@ public void arrivedAtDestNotStation() {
                 	if(passengersNotForNextDest == null)
                 		passengersNotForNextDest = passengersForDest.get(i).getName();
                 	else
-                		passengersNotForNextDest.concat(","+passengersForDest.get(i).getName());
+                		passengersNotForNextDest=passengersNotForNextDest.concat(","+passengersForDest.get(i).getName());
                 }
         }
 		
@@ -386,7 +387,7 @@ public void arrivedAtDestNotStation() {
 			if (passengersInVehicle == null)
 				passengersInVehicle = passengersForDest.get(i).getName();
 			else
-				passengersInVehicle.concat(","+passengersForDest.get(i).getName());
+				passengersInVehicle=passengersInVehicle.concat(","+passengersForDest.get(i).getName());
         }
 		return passengersInVehicle;
 	}
@@ -398,9 +399,10 @@ public void arrivedAtDestNotStation() {
 		if (passengersForDest.size()>0)
 		{
 		//For now move to the first Dest
-		destination = passengersForDest.get(0).getDestination();
-		destLat =  new Double(passengersForDest.get(0).getLat());
-		destLon =  new Double(passengersForDest.get(0).getLon());
+		PartyInfo partyInfo = passengersForDest.get(0);
+		destination = partyInfo.getDestination();
+		destLat =  new Double(partyInfo.getLat());
+		destLon =  new Double(partyInfo.getLon());
 		return true;
 		}
 		
@@ -411,14 +413,12 @@ public void arrivedAtDestNotStation() {
 	
 	public void disembarkPassengers()
 	{
-		for (int i=0; i< passengersForDest.size(); i++)
-        {
-                if(passengersForDest.get(i).getDestination().compareTo(this.destination) == 0 )
-                {
-                	passengersForDest.remove(i);
-                }
-        }
-		
+		for(Iterator<PartyInfo> it = passengersForDest.iterator(); it.hasNext();){
+			PartyInfo info = it.next();
+			if(info.getDestination().equals(this.destination)){
+				it.remove();
+			}
+		}
 	}
 	
 	
@@ -564,7 +564,7 @@ public void showNavigationScreen(Location location){
 	intent.putExtra("allPassengers",allPassengers);
 	String passengersNotForNextDest =getPassengersNotForNextDest();
 	intent.putExtra("passengersNotForNextDest",passengersNotForNextDest);
-	startActivityForResult(intent, 0);
+	startActivity(intent);
 }
 
 private void register_vehicle(){
@@ -680,7 +680,7 @@ class WaitPartiesFromStation extends AsyncTask<StationInfo, String, Boolean> {
 		try{
 			for (VehicleInfo inf : VehicleManager.getInstance().getLearnedVehicles().values()) {
 				if(inf.getLat() != null){
-					url = String.format(getGpsServerAddress() + "/Update?vid=" + inf.getvID() + ";lat=" + inf.getLat() + 
+					url = String.format(getServerAddress() + "/Update?vid=" + inf.getvID() + ";lat=" + inf.getLat() + 
 							";lon=" + inf.getLon() + ";alt=" + inf.getAlt() + ";dest=" + inf.getDest() + 
 							";plist=" + inf.getpList() + ";bat=" + inf.getBat() + ";ts=" + inf.getTime());	
 					contact_server(url);

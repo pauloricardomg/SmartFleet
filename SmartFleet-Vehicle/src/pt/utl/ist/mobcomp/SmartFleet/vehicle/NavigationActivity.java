@@ -203,16 +203,12 @@ public class NavigationActivity extends MapActivity implements LocationListener 
             Toast.makeText(this, "Destination is a Station", Toast.LENGTH_LONG).show();
             
             //Go back to station screen
-            Intent intent1 = new Intent();
-	    	setResult(RESULT_OK, intent1);
 	        finish();
 	        
         }
         else{
         	//stay on navigation screen! but we just go back to the main screen and call a different method
             Toast.makeText(this, "Destination not a station", Toast.LENGTH_LONG).show();
-            Intent intent1 = new Intent();
-	    	setResult(RESULT_OK, intent1);
 	        finish();
         }
     }

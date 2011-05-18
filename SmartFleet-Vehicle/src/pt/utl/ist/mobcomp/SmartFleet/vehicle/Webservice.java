@@ -146,15 +146,7 @@ public class Webservice implements Runnable {
 										}
 									});
 									battMan.raiseAltitude();
-								} else {
-									//Log.d("RecvWarn", "Change Altitude");
-									handler.post(new Runnable() {
-										@Override
-										public void run() {
-											Toast.makeText(vehicleActivity,"Vehicle " + otherVehicleID + " was too close and moved up 100 mts", Toast.LENGTH_LONG).show();		
-										}
-									});
-								}
+								} 
 							}
 
 						} else if (type.compareToIgnoreCase("gossip") == 0){
